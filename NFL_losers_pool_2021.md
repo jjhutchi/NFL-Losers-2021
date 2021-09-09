@@ -375,3 +375,6 @@ ggplot(data, aes(y=Week, x=ProbWin_1, xend=ProbWin_2)) +
 
 ![](README_figs/README-unnamed-chunk-6-1.png)<!-- -->
 
+
+Both approaches have the same pick in week 1, but a large difference in picks 
+for Week 3. This analysis is still in progress. 

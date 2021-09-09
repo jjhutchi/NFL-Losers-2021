@@ -147,8 +147,6 @@ $$\text{Team constraint: } \sum_i x_i \leq 1 \\ \text{Week constraint: }x_t = 1 
 
 
 ```{r}
-
-
 labs <- c("Week", "Team", "ProbWin")
 names(picks) <- labs
 names(picks2) <- labs
@@ -169,3 +167,6 @@ ggplot(data, aes(y=Week, x=ProbWin_1, xend=ProbWin_2)) +
   theme(panel.grid.major.x=element_line(size=0.05))
 ```
 
+
+Both approaches have the same pick in week 1, but a large difference in picks 
+for Week 3. This analysis is still in progress. 
