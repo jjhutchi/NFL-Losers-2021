@@ -1107,7 +1107,6 @@ Avg. Prob
 <p>Comparing the results, we see the average performance is 0.01 higher when we force PIT in round 1. For this reason, it does not make sense to make a sole pick using PIT, however, it can be worth hedging a bet selecting them in the first round when multiple picks are submitted.</p>
 <pre class="r"><code>teams &lt;- c(&quot;PIT&quot;)
 weeks &lt;- c(1, seq(total_weeks + 1, 18, 1))
-weeks2 &lt;- c(1)
 
 picks &lt;- by_week(teams)
 picks2 &lt;- by_prob(weeks, teams)
@@ -1505,6 +1504,368 @@ Avg. Prob
 <h2>Approach 4:</h2>
 <p>This is a linear optimization problem. Normally I could solve this quickly in Excel using the built in solver.</p>
 <p>Our optimization problem is the following <span class="math display">\[ \min_{x_{it}} \sum_i\sum_t p_{it}x_{it} \text{ s.t.} \]</span> <span class="math display">\[\text{Team constraint: } \sum_i x_i \leq 1 \\ \text{Week constraint: }x_t = 1 \forall t \]</span></p>
+</div>
+<div id="other-considerations" class="section level2">
+<h2>Other considerations:</h2>
+<div id="optimal-picks-weeks-3-onward." class="section level3">
+<h3>Optimal picks weeks 3 onward.</h3>
+<ol style="list-style-type: decimal">
+<li>There is a rebuy after weeks 1 and 2. I can begin my algorithms in week 3 and onward, and then take the remaining picks in weeks 1 &amp; 2, given the crutch of a rebuy.</li>
+</ol>
+<pre class="r"><code>teams &lt;- c(&quot;&quot;, &quot;&quot;)
+weeks &lt;- c(1, 2, seq(total_weeks + 1, 18, 1))
+
+picks &lt;- by_week(teams)
+picks2 &lt;- by_prob(weeks, teams)
+picks3 &lt;- opp_cost(weeks, teams)
+
+tbl &lt;- left_join(picks, picks2, by=&quot;Week&quot;, suffix=c(&quot;_1&quot;, &quot;_2&quot;))
+tbl &lt;- left_join(tbl, picks3, by=&quot;Week&quot;, suffix=c(&quot;&quot;, &quot;_3&quot;))
+names &lt;- c(&quot;Week&quot;, rep(c(&quot;Team&quot;, &quot;ProbWin&quot;),3))
+names(tbl) &lt;- names
+
+avg_1 &lt;- mean(as.numeric(picks$`Pr(Win)`))
+avg_2 &lt;- mean(as.numeric(picks2$`Pr(Win)`))
+avg_3 &lt;- mean(as.numeric(picks3$ProbWin))
+avg_row &lt;- data.frame(&quot;Avg. Prob&quot;, &quot;&quot;, avg_1, &quot;&quot;, avg_2, &quot;&quot;, avg_3)
+names(avg_row) &lt;- names(tbl)
+
+tbl &lt;- rbind(tbl, avg_row)
+
+kbl(tbl, digits=3) %&gt;%
+  kable_classic(full_width=F) %&gt;%
+  add_header_above(c(&quot; &quot; = 1, &quot;Approach 1&quot; = 2, &quot;Approach 2&quot; = 2, &quot;Approach 3&quot; = 2)) %&gt;%
+  row_spec(total_weeks-1, bold=T)</code></pre>
+<table class=" lightable-classic" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="empty-cells: hide;" colspan="1">
+</th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2">
+<div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">
+Approach 1
+</div>
+</th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2">
+<div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">
+Approach 2
+</div>
+</th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2">
+<div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">
+Approach 3
+</div>
+</th>
+</tr>
+<tr>
+<th style="text-align:left;">
+Week
+</th>
+<th style="text-align:left;">
+Team
+</th>
+<th style="text-align:right;">
+ProbWin
+</th>
+<th style="text-align:left;">
+Team
+</th>
+<th style="text-align:right;">
+ProbWin
+</th>
+<th style="text-align:left;">
+Team
+</th>
+<th style="text-align:right;">
+ProbWin
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:left;">
+LAC
+</td>
+<td style="text-align:right;">
+0.262
+</td>
+<td style="text-align:left;">
+LAC
+</td>
+<td style="text-align:right;">
+0.262
+</td>
+<td style="text-align:left;">
+LAC
+</td>
+<td style="text-align:right;">
+0.262
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:left;">
+HOU
+</td>
+<td style="text-align:right;">
+0.081
+</td>
+<td style="text-align:left;">
+HOU
+</td>
+<td style="text-align:right;">
+0.081
+</td>
+<td style="text-align:left;">
+HOU
+</td>
+<td style="text-align:right;">
+0.081
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:left;">
+DET
+</td>
+<td style="text-align:right;">
+0.240
+</td>
+<td style="text-align:left;">
+MIA
+</td>
+<td style="text-align:right;">
+0.259
+</td>
+<td style="text-align:left;">
+MIA
+</td>
+<td style="text-align:right;">
+0.259
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:left;">
+PHI
+</td>
+<td style="text-align:right;">
+0.285
+</td>
+<td style="text-align:left;">
+PHI
+</td>
+<td style="text-align:right;">
+0.285
+</td>
+<td style="text-align:left;">
+PHI
+</td>
+<td style="text-align:right;">
+0.285
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:left;">
+CHI
+</td>
+<td style="text-align:right;">
+0.195
+</td>
+<td style="text-align:left;">
+DET
+</td>
+<td style="text-align:right;">
+0.178
+</td>
+<td style="text-align:left;">
+CHI
+</td>
+<td style="text-align:right;">
+0.195
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+8
+</td>
+<td style="text-align:left;">
+NYG
+</td>
+<td style="text-align:right;">
+0.184
+</td>
+<td style="text-align:left;">
+NYG
+</td>
+<td style="text-align:right;">
+0.184
+</td>
+<td style="text-align:left;">
+NYG
+</td>
+<td style="text-align:right;">
+0.184
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+9
+</td>
+<td style="text-align:left;">
+JAX
+</td>
+<td style="text-align:right;">
+0.263
+</td>
+<td style="text-align:left;">
+NYJ
+</td>
+<td style="text-align:right;">
+0.270
+</td>
+<td style="text-align:left;">
+MIN
+</td>
+<td style="text-align:right;">
+0.278
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+10
+</td>
+<td style="text-align:left;">
+NYJ
+</td>
+<td style="text-align:right;">
+0.273
+</td>
+<td style="text-align:left;">
+OAK
+</td>
+<td style="text-align:right;">
+0.327
+</td>
+<td style="text-align:left;">
+NYJ
+</td>
+<td style="text-align:right;">
+0.273
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+11
+</td>
+<td style="text-align:left;">
+DAL
+</td>
+<td style="text-align:right;">
+0.267
+</td>
+<td style="text-align:left;">
+DAL
+</td>
+<td style="text-align:right;">
+0.267
+</td>
+<td style="text-align:left;">
+DET
+</td>
+<td style="text-align:right;">
+0.188
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+12
+</td>
+<td style="text-align:left;">
+CAR
+</td>
+<td style="text-align:right;">
+0.317
+</td>
+<td style="text-align:left;">
+CAR
+</td>
+<td style="text-align:right;">
+0.317
+</td>
+<td style="text-align:left;">
+CAR
+</td>
+<td style="text-align:right;">
+0.317
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+13
+</td>
+<td style="text-align:left;">
+DEN
+</td>
+<td style="text-align:right;">
+0.220
+</td>
+<td style="text-align:left;">
+JAX
+</td>
+<td style="text-align:right;">
+0.187
+</td>
+<td style="text-align:left;">
+JAX
+</td>
+<td style="text-align:right;">
+0.187
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;">
+Avg. Prob
+</td>
+<td style="text-align:left;font-weight: bold;">
+</td>
+<td style="text-align:right;font-weight: bold;">
+0.235
+</td>
+<td style="text-align:left;font-weight: bold;">
+</td>
+<td style="text-align:right;font-weight: bold;">
+0.238
+</td>
+<td style="text-align:left;font-weight: bold;">
+</td>
+<td style="text-align:right;font-weight: bold;">
+0.228
+</td>
+</tr>
+</tbody>
+</table>
+<p>Missing from the respective lists are:</p>
+<ol style="list-style-type: decimal">
+<li>PIT and ATL</li>
+<li>CHI and ATL</li>
+<li>DAL and ATL<br />
+Our updated averages become: 0.236, 0.237, and 0.230.</li>
+</ol>
+<p>Surprisingly a weak improvement in each approach! Note: the analysis was done ad-hoc in an excel sheet. I didn’t feel like coding this one up to check which teams are missing from each week and what the best picks otherwise are.</p>
+</div>
 </div>
 </div>
 

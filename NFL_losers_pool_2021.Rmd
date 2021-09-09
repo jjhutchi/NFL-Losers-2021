@@ -309,7 +309,6 @@ first round when multiple picks are submitted.
 ```{r}
 teams <- c("PIT")
 weeks <- c(1, seq(total_weeks + 1, 18, 1))
-weeks2 <- c(1)
 
 picks <- by_week(teams)
 picks2 <- by_prob(weeks, teams)
@@ -347,6 +346,47 @@ $$ \min_{x_{it}} \sum_i\sum_t p_{it}x_{it} \text{ s.t.} $$
 $$\text{Team constraint: } \sum_i x_i \leq 1 \\ \text{Week constraint: }x_t = 1 \forall t $$
 
 ## Other considerations:   
+
+
+### Optimal picks weeks 3 onward. 
 1. There is a rebuy after weeks 1 and 2. I can begin my algorithms in week 3 
 and onward, and then take the remaining picks in weeks 1 & 2, given the crutch of 
 a rebuy. 
+
+```{r}
+teams <- c("", "")
+weeks <- c(1, 2, seq(total_weeks + 1, 18, 1))
+
+picks <- by_week(teams)
+picks2 <- by_prob(weeks, teams)
+picks3 <- opp_cost(weeks, teams)
+
+tbl <- left_join(picks, picks2, by="Week", suffix=c("_1", "_2"))
+tbl <- left_join(tbl, picks3, by="Week", suffix=c("", "_3"))
+names <- c("Week", rep(c("Team", "ProbWin"),3))
+names(tbl) <- names
+
+avg_1 <- mean(as.numeric(picks$`Pr(Win)`))
+avg_2 <- mean(as.numeric(picks2$`Pr(Win)`))
+avg_3 <- mean(as.numeric(picks3$ProbWin))
+avg_row <- data.frame("Avg. Prob", "", avg_1, "", avg_2, "", avg_3)
+names(avg_row) <- names(tbl)
+
+tbl <- rbind(tbl, avg_row)
+
+kbl(tbl, digits=3) %>%
+  kable_classic(full_width=F) %>%
+  add_header_above(c(" " = 1, "Approach 1" = 2, "Approach 2" = 2, "Approach 3" = 2)) %>%
+  row_spec(total_weeks-1, bold=T)
+```
+
+Missing from the respective lists are: 
+
+1. PIT and ATL
+2. CHI and ATL
+3. DAL and ATL  
+Our updated averages become: 0.236, 0.237, and 0.230. 
+
+Surprisingly a weak improvement in each approach! Note: the analysis was done 
+ad-hoc in an excel sheet. I didn't feel like coding this one up to check which 
+teams are missing from each week and what the best picks otherwise are. 

@@ -615,7 +615,6 @@ first round when multiple picks are submitted.
 ```r
 teams <- c("PIT")
 weeks <- c(1, seq(total_weeks + 1, 18, 1))
-weeks2 <- c(1)
 
 picks <- by_week(teams)
 picks2 <- by_prob(weeks, teams)
@@ -800,3 +799,179 @@ Our optimization problem is the following
 $$ \min_{x_{it}} \sum_i\sum_t p_{it}x_{it} \text{ s.t.} $$
 $$\text{Team constraint: } \sum_i x_i \leq 1 \\ \text{Week constraint: }x_t = 1 \forall t $$
 
+## Other considerations:   
+
+
+### Optimal picks weeks 3 onward. 
+1. There is a rebuy after weeks 1 and 2. I can begin my algorithms in week 3 
+and onward, and then take the remaining picks in weeks 1 & 2, given the crutch of 
+a rebuy. 
+
+
+```r
+teams <- c("", "")
+weeks <- c(1, 2, seq(total_weeks + 1, 18, 1))
+
+picks <- by_week(teams)
+picks2 <- by_prob(weeks, teams)
+picks3 <- opp_cost(weeks, teams)
+
+tbl <- left_join(picks, picks2, by="Week", suffix=c("_1", "_2"))
+tbl <- left_join(tbl, picks3, by="Week", suffix=c("", "_3"))
+names <- c("Week", rep(c("Team", "ProbWin"),3))
+names(tbl) <- names
+
+avg_1 <- mean(as.numeric(picks$`Pr(Win)`))
+avg_2 <- mean(as.numeric(picks2$`Pr(Win)`))
+avg_3 <- mean(as.numeric(picks3$ProbWin))
+avg_row <- data.frame("Avg. Prob", "", avg_1, "", avg_2, "", avg_3)
+names(avg_row) <- names(tbl)
+
+tbl <- rbind(tbl, avg_row)
+
+kbl(tbl, digits=3) %>%
+  kable_classic(full_width=F) %>%
+  add_header_above(c(" " = 1, "Approach 1" = 2, "Approach 2" = 2, "Approach 3" = 2)) %>%
+  row_spec(total_weeks-1, bold=T)
+```
+
+<table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+ <thead>
+<tr>
+<th style="empty-cells: hide;" colspan="1"></th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Approach 1</div></th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Approach 2</div></th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Approach 3</div></th>
+</tr>
+  <tr>
+   <th style="text-align:left;"> Week </th>
+   <th style="text-align:left;"> Team </th>
+   <th style="text-align:right;"> ProbWin </th>
+   <th style="text-align:left;"> Team </th>
+   <th style="text-align:right;"> ProbWin </th>
+   <th style="text-align:left;"> Team </th>
+   <th style="text-align:right;"> ProbWin </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> 3 </td>
+   <td style="text-align:left;"> LAC </td>
+   <td style="text-align:right;"> 0.262 </td>
+   <td style="text-align:left;"> LAC </td>
+   <td style="text-align:right;"> 0.262 </td>
+   <td style="text-align:left;"> LAC </td>
+   <td style="text-align:right;"> 0.262 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 4 </td>
+   <td style="text-align:left;"> HOU </td>
+   <td style="text-align:right;"> 0.081 </td>
+   <td style="text-align:left;"> HOU </td>
+   <td style="text-align:right;"> 0.081 </td>
+   <td style="text-align:left;"> HOU </td>
+   <td style="text-align:right;"> 0.081 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 5 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.240 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.259 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.259 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 6 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.285 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.285 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.285 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 7 </td>
+   <td style="text-align:left;"> CHI </td>
+   <td style="text-align:right;"> 0.195 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.178 </td>
+   <td style="text-align:left;"> CHI </td>
+   <td style="text-align:right;"> 0.195 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 8 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.184 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.184 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.184 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 9 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.263 </td>
+   <td style="text-align:left;"> NYJ </td>
+   <td style="text-align:right;"> 0.270 </td>
+   <td style="text-align:left;"> MIN </td>
+   <td style="text-align:right;"> 0.278 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 10 </td>
+   <td style="text-align:left;"> NYJ </td>
+   <td style="text-align:right;"> 0.273 </td>
+   <td style="text-align:left;"> OAK </td>
+   <td style="text-align:right;"> 0.327 </td>
+   <td style="text-align:left;"> NYJ </td>
+   <td style="text-align:right;"> 0.273 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 11 </td>
+   <td style="text-align:left;"> DAL </td>
+   <td style="text-align:right;"> 0.267 </td>
+   <td style="text-align:left;"> DAL </td>
+   <td style="text-align:right;"> 0.267 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.188 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 12 </td>
+   <td style="text-align:left;"> CAR </td>
+   <td style="text-align:right;"> 0.317 </td>
+   <td style="text-align:left;"> CAR </td>
+   <td style="text-align:right;"> 0.317 </td>
+   <td style="text-align:left;"> CAR </td>
+   <td style="text-align:right;"> 0.317 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 13 </td>
+   <td style="text-align:left;"> DEN </td>
+   <td style="text-align:right;"> 0.220 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.187 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.187 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> Avg. Prob </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.235 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.238 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.228 </td>
+  </tr>
+</tbody>
+</table>
+
+Missing from the respective lists are: 
+
+1. PIT and ATL
+2. CHI and ATL
+3. DAL and ATL  
+Our updated averages become: 0.236, 0.237, and 0.230. 
+
+Surprisingly a weak improvement in each approach! Note: the analysis was done 
+ad-hoc in an excel sheet. I didn't feel like coding this one up to check which 
+teams are missing from each week and what the best picks otherwise are. 
