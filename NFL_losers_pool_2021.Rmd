@@ -236,6 +236,8 @@ teams <- c()
 weeks <- c(seq(total_weeks + 1, 18, 1))
 picks3 <- opp_cost(weeks, teams)
 
+kable(picks3, digits = 2) %>%
+  kable_classic(full_width = F)
 ```
 
 
@@ -265,7 +267,22 @@ ggplot(data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
   scale_color_viridis_d() + 
   labs(title = "Comparing weekly win probabilities per Approach", 
        x = "Week Number", 
-       y = "Probability of Win")
+       y = "Win Probability")
+```
+
+### Selection plot
+The selection plot shows all the candidate picks - probabilities for the underdog - 
+with the picks made by each approach shaded in by a different colour. 
+
+```{r}
+ggplot() + 
+  geom_point(data = df, aes(x=week, y=p_lose), alpha=0.2, color="gray") + 
+  geom_point(data = data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
+  scale_color_viridis_d() + 
+  coord_flip() + 
+  labs(title = "Selection plot for each approach", 
+       x = "Week Number", 
+       y = "Win Probability")
 ```
 
 
@@ -353,7 +370,7 @@ $$\text{Team constraint: } \sum_i x_i \leq 1 \\ \text{Week constraint: }x_t = 1 
 and onward, and then take the remaining picks in weeks 1 & 2, given the crutch of 
 a rebuy. 
 
-```{r}
+```{r, warning=FALSE}
 teams <- c("", "")
 weeks <- c(1, 2, seq(total_weeks + 1, 18, 1))
 
@@ -378,6 +395,16 @@ kbl(tbl, digits=3) %>%
   kable_classic(full_width=F) %>%
   add_header_above(c(" " = 1, "Approach 1" = 2, "Approach 2" = 2, "Approach 3" = 2)) %>%
   row_spec(total_weeks-1, bold=T)
+
+ggplot() + 
+  geom_point(data = subset(df, week>2 & week < 14), aes(x=week, y=p_lose), alpha=0.2, color="gray") + 
+  geom_point(data = data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
+  scale_color_viridis_d() + 
+  coord_flip() + 
+  xlim(3, 12) + 
+  labs(title = "Selection plot for each approach - beginning in week 3", 
+       x = "Week Number", 
+       y = "Win Probability")
 ```
 
 Missing from the respective lists are: 

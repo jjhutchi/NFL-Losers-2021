@@ -390,7 +390,87 @@ opp_cost <- function(weeks, teams){
 teams <- c()
 weeks <- c(seq(total_weeks + 1, 18, 1))
 picks3 <- opp_cost(weeks, teams)
+
+kable(picks3, digits = 2) %>%
+  kable_classic(full_width = F)
 ```
+
+<table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+ <thead>
+  <tr>
+   <th style="text-align:right;"> Week </th>
+   <th style="text-align:left;"> Team </th>
+   <th style="text-align:right;"> ProbWin </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:right;"> 1 </td>
+   <td style="text-align:left;"> DAL </td>
+   <td style="text-align:right;"> 0.26 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 2 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.16 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 3 </td>
+   <td style="text-align:left;"> LAC </td>
+   <td style="text-align:right;"> 0.26 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:left;"> HOU </td>
+   <td style="text-align:right;"> 0.08 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 5 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.26 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.29 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:left;"> CHI </td>
+   <td style="text-align:right;"> 0.20 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.23 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 9 </td>
+   <td style="text-align:left;"> MIN </td>
+   <td style="text-align:right;"> 0.28 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:left;"> NYJ </td>
+   <td style="text-align:right;"> 0.27 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 11 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.21 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 12 </td>
+   <td style="text-align:left;"> CAR </td>
+   <td style="text-align:right;"> 0.32 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 13 </td>
+   <td style="text-align:left;"> DEN </td>
+   <td style="text-align:right;"> 0.22 </td>
+  </tr>
+</tbody>
+</table>
 
 
 ## Visualize differences across models
@@ -420,10 +500,28 @@ ggplot(data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
   scale_color_viridis_d() + 
   labs(title = "Comparing weekly win probabilities per Approach", 
        x = "Week Number", 
-       y = "Probability of Win")
+       y = "Win Probability")
 ```
 
 ![](README_figs/README-unnamed-chunk-7-1.png)<!-- -->
+
+### Selection plot
+The selection plot shows all the candidate picks - probabilities for the underdog - 
+with the picks made by each approach shaded in by a different colour. 
+
+
+```r
+ggplot() + 
+  geom_point(data = df, aes(x=week, y=p_lose), alpha=0.2, color="gray") + 
+  geom_point(data = data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
+  scale_color_viridis_d() + 
+  coord_flip() + 
+  labs(title = "Selection plot for each approach", 
+       x = "Week Number", 
+       y = "Win Probability")
+```
+
+![](README_figs/README-unnamed-chunk-8-1.png)<!-- -->
 
 
 ### Table of by week picks
@@ -964,6 +1062,20 @@ kbl(tbl, digits=3) %>%
   </tr>
 </tbody>
 </table>
+
+```r
+ggplot() + 
+  geom_point(data = subset(df, week>2 & week < 14), aes(x=week, y=p_lose), alpha=0.2, color="gray") + 
+  geom_point(data = data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
+  scale_color_viridis_d() + 
+  coord_flip() + 
+  xlim(3, 12) + 
+  labs(title = "Selection plot for each approach - beginning in week 3", 
+       x = "Week Number", 
+       y = "Win Probability")
+```
+
+![](README_figs/README-unnamed-chunk-11-1.png)<!-- -->
 
 Missing from the respective lists are: 
 
