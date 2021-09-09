@@ -1,5 +1,5 @@
 ---
-title: "NFL Losers Pool 2021"
+title: "NFL Losers Pool 2021 Exploration"
 author: "Jordan Hutchings"
 date: "08/09/2021"
 output: 
@@ -61,7 +61,7 @@ not selected.
 probabilities across all the weeks. 
 
 Lets compare the outcomes below, with our outcome of choice being the 
-sum of the probability of winning. 
+average of the probability of winning. 
 
 ## Approach 1: 
 Once a team is picked in a given week, we remove the team. We iterate through 
@@ -529,6 +529,15 @@ We can see that Approach 3 has a lower probability on average, with a drasticall
 lower probability of winning in week 4, as with Approach 2. Something that was 
 overlooked in Approach 1. 
 
+I've also included the standard deviation across all the weeks. Since the 
+probability of making it to the following week is dependent on successfully losing 
+the game the week prior, our probabilities multiply by week. We will get the 
+largest probability of success when our probabilities are all similar to each other, 
+i.e. have a smaller standard deviation. 
+
+Looking at the first two moments, it is clear that Approach 3 provides the best 
+pick. 
+
 
 ```r
 tbl <- left_join(picks, picks2, by="Week", suffix=c("_1", "_2"))
@@ -540,15 +549,24 @@ names(tbl) <- names
 avg_1 <- mean(as.numeric(picks$ProbWin))
 avg_2 <- mean(as.numeric(picks2$ProbWin))
 avg_3 <- mean(as.numeric(picks3$ProbWin))
-avg_row <- data.frame("Avg. Prob", "", avg_1, "", avg_2, "", avg_3)
+avg_row <- data.frame("Mean", "", avg_1, "", avg_2, "", avg_3)
 names(avg_row) <- names(tbl)
 
+sd_1 <- sd(as.numeric(picks$ProbWin))
+sd_2 <- sd(as.numeric(picks2$ProbWin))
+sd_3 <- sd(as.numeric(picks3$ProbWin))
+sd_row <- data.frame("SD", "", sd_1, "", sd_2, "", sd_3)
+names(sd_row) <- names(tbl)
+
+
 tbl <- rbind(tbl, avg_row)
+tbl <- rbind(tbl, sd_row)
 
 kbl(tbl, digits=3) %>%
   kable_classic(full_width=F) %>%
   add_header_above(c(" " = 1, "Approach 1" = 2, "Approach 2" = 2, "Approach 3" = 2)) %>%
-  row_spec(total_weeks+1, bold=T)
+  row_spec(total_weeks+1, bold=T) %>%
+  row_spec(total_weeks+2, bold=T)
 ```
 
 <table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
@@ -688,13 +706,22 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:right;"> 0.220 </td>
   </tr>
   <tr>
-   <td style="text-align:left;font-weight: bold;"> Avg. Prob </td>
+   <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.246 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.236 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.233 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> SD </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.070 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.063 </td>
   </tr>
 </tbody>
 </table>
@@ -726,15 +753,23 @@ names(tbl) <- names
 avg_1 <- mean(as.numeric(picks$`Pr(Win)`))
 avg_2 <- mean(as.numeric(picks2$`Pr(Win)`))
 avg_3 <- mean(as.numeric(picks3$ProbWin))
-avg_row <- data.frame("Avg. Prob", "", avg_1, "", avg_2, "", avg_3)
+avg_row <- data.frame("Mean", "", avg_1, "", avg_2, "", avg_3)
 names(avg_row) <- names(tbl)
 
+sd_1 <- sd(as.numeric(picks$`Pr(Win)`))
+sd_2 <- sd(as.numeric(picks2$`Pr(Win)`))
+sd_3 <- sd(as.numeric(picks3$ProbWin))
+sd_row <- data.frame("SD", "", sd_1, "", sd_2, "", sd_3)
+names(sd_row) <- names(tbl)
+
 tbl <- rbind(tbl, avg_row)
+tbl <- rbind(tbl, sd_row)
 
 kbl(tbl, digits=3) %>%
   kable_classic(full_width=F) %>%
   add_header_above(c(" " = 1, "Approach 1" = 2, "Approach 2" = 2, "Approach 3" = 2)) %>%
-  row_spec(total_weeks+1, bold=T)
+  row_spec(total_weeks+1, bold=T) %>%
+  row_spec(total_weeks+2, bold=T)
 ```
 
 <table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
@@ -874,13 +909,22 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:right;"> 0.220 </td>
   </tr>
   <tr>
-   <td style="text-align:left;font-weight: bold;"> Avg. Prob </td>
+   <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.247 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.237 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.234 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> SD </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.070 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.064 </td>
   </tr>
 </tbody>
 </table>
@@ -922,15 +966,23 @@ names(tbl) <- names
 avg_1 <- mean(as.numeric(picks$`Pr(Win)`))
 avg_2 <- mean(as.numeric(picks2$`Pr(Win)`))
 avg_3 <- mean(as.numeric(picks3$ProbWin))
-avg_row <- data.frame("Avg. Prob", "", avg_1, "", avg_2, "", avg_3)
+avg_row <- data.frame("Mean", "", avg_1, "", avg_2, "", avg_3)
 names(avg_row) <- names(tbl)
 
+sd_1 <- sd(as.numeric(picks$`Pr(Win)`))
+sd_2 <- sd(as.numeric(picks2$`Pr(Win)`))
+sd_3 <- sd(as.numeric(picks3$ProbWin))
+sd_row <- data.frame("SD", "", sd_1, "", sd_2, "", sd_3)
+names(sd_row) <- names(tbl)
+
 tbl <- rbind(tbl, avg_row)
+tbl <- rbind(tbl, sd_row)
 
 kbl(tbl, digits=3) %>%
   kable_classic(full_width=F) %>%
   add_header_above(c(" " = 1, "Approach 1" = 2, "Approach 2" = 2, "Approach 3" = 2)) %>%
-  row_spec(total_weeks-1, bold=T)
+  row_spec(total_weeks-1, bold=T) %>%
+  row_spec(total_weeks, bold=T)
 ```
 
 <table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
@@ -1052,13 +1104,22 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:right;"> 0.187 </td>
   </tr>
   <tr>
-   <td style="text-align:left;font-weight: bold;"> Avg. Prob </td>
+   <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.235 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.238 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.228 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> SD </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.064 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.073 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.068 </td>
   </tr>
 </tbody>
 </table>
@@ -1070,7 +1131,7 @@ ggplot() +
   scale_color_viridis_d() + 
   coord_flip() + 
   xlim(3, 12) + 
-  labs(title = "Selection plot for each approach - beginning in week 3", 
+  labs(title = "Selection plot for each approach - Week 3+", 
        x = "Week Number", 
        y = "Win Probability")
 ```
