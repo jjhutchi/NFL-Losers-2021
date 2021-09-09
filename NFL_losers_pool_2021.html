@@ -206,7 +206,7 @@ df &lt;- df %&gt;%
 <ol style="list-style-type: decimal">
 <li>Pick the lowest probability of winning each week</li>
 <li>Pick the lowest probability of winning each team</li>
-<li>Pick the team ina given week with the largest change if they’re not selected.</li>
+<li>Pick the team in a given week with the largest change if they’re not selected.</li>
 <li>[TBD] Pick the combination of games that lead to the lowest sum of win probabilities across all the weeks.</li>
 </ol>
 <p>Lets compare the outcomes below, with our outcome of choice being the sum of the probability of winning.</p>
@@ -215,25 +215,36 @@ df &lt;- df %&gt;%
 <h2>Approach 1:</h2>
 <p>Once a team is picked in a given week, we remove the team. We iterate through picking the team with the lowest probability.</p>
 <pre class="r"><code>total_weeks &lt;- 13
-picks &lt;- list()
-teams &lt;- c()
 
-for(w in 1:total_weeks){
+by_week &lt;- function(teams){
+  picks &lt;- list()
   
-    if(w&gt;1){
-      tmp &lt;- subset(df, !(loser%in%teams))
-    } else{tmp &lt;- df}
+  for(w in 1:total_weeks){
+    if(w&lt;=length(teams)){
+      pick &lt;- df %&gt;% 
+        filter(week == w) %&gt;%
+        filter(loser == teams[w])
+    } else {
+      pick &lt;- df %&gt;% 
+        filter(!loser %in% teams) %&gt;%
+        filter(week == w) %&gt;%
+        arrange(p_lose) %&gt;%
+        slice(1L)
+    teams &lt;- append(teams, pick$loser)
+    }
+    
+    picks[[w]] &lt;- pick
+      
+    
+  }
+  picks &lt;- do.call(rbind.data.frame, picks)
+  names(picks) &lt;- c(&quot;Week&quot;, &quot;Team&quot;, &quot;Pr(Win)&quot;)
   
-    pick &lt;- tmp %&gt;% filter(week == w) %&gt;%
-      arrange(p_lose) %&gt;%
-      slice(1L)
-  teams &lt;- append(teams, pick$loser)
-  picks[[w]] &lt;- pick
-  
+  return(picks)
 }
 
-picks &lt;- do.call(rbind.data.frame, picks)
-names(picks) &lt;- c(&quot;Week&quot;, &quot;Team&quot;, &quot;Pr(Win)&quot;)
+teams &lt;- c()
+picks &lt;- by_week(teams)
 
 kable(picks, digits = 2) %&gt;%
   kable_classic(full_width = F)</code></pre>
@@ -402,31 +413,49 @@ DEN
 <h2>Approach 2:</h2>
 <p>Pick the lowest probability for each team. We can iterate through picking the lowest absolute probability, then add that team and week and remove from the list of contenders.</p>
 <p>Last year the winner was determined in Week 13. We can therefore only pick the lowest probabilities from the first 13 weeks. This has a slight improvement from if we include all 18 weeks, however most of the changes are seen in later weeks (week 9).</p>
-<pre class="r"><code>weeks2 &lt;- c()
-teams2 &lt;- c()
-picks2 &lt;- list()
-w &lt;- 1
-
-
-while(w &lt;= total_weeks){
-  tmp &lt;- df
-  tmp &lt;- subset(tmp, !(loser%in%teams2))
-  tmp &lt;- subset(tmp, !(week%in%weeks2))
-  tmp &lt;- subset(tmp, week &lt;= total_weeks)
+<pre class="r"><code>by_prob &lt;- function(weeks2, teams2){
+  picks2 &lt;- list()
+  w &lt;- 1
   
-  pick &lt;- tmp %&gt;%
-    arrange(p_lose) %&gt;%
-    slice(1L)
-  weeks2 &lt;- append(weeks2, pick$week)
-  teams2 &lt;- append(teams2, pick$loser)
-  picks2[[w]] &lt;- pick
+  while(w &lt;= total_weeks){
+    
+    if(w &lt;= length(teams2)){
+      pick &lt;- df %&gt;% 
+        filter(week == w) %&gt;%
+        filter(loser == teams2[w])
+      
+    } else {
+      tmp &lt;- df
+      tmp &lt;- subset(tmp, !(loser%in%teams2))
+      tmp &lt;- subset(tmp, !(week%in%weeks2))
+      tmp &lt;- subset(tmp, week &lt;= total_weeks)
+      
+      pick &lt;- tmp %&gt;%
+        arrange(p_lose) %&gt;%
+        slice(1L)
+      weeks2 &lt;- append(weeks2, pick$week)
+      teams2 &lt;- append(teams2, pick$loser)
+      
+    }
+    
+    picks2[[w]] &lt;- pick
+    w = w+1
+    
+    
+    
+  }
   
-  w = w+1
+  picks2 &lt;- do.call(rbind.data.frame, picks2)
+  picks2 &lt;- arrange(picks2, week)
+  names(picks2) &lt;- c(&quot;Week&quot;, &quot;Team&quot;, &quot;Pr(Win)&quot;)
+  
+  return(picks2)
+
 }
+weeks2 &lt;- c()
+teams2 &lt;- c()
 
-picks2 &lt;- do.call(rbind.data.frame, picks2)
-picks2 &lt;- arrange(picks2, week)
-names(picks2) &lt;- c(&quot;Week&quot;, &quot;Team&quot;, &quot;Pr(Win)&quot;)
+picks2 &lt;- by_prob(weeks2, teams2)
 
 kable(picks2, digits = 2) %&gt;%
   kable_classic(full_width = F)</code></pre>
@@ -595,7 +624,7 @@ JAX
 <h2>Approach 3:</h2>
 <p>We can apply a different algorithm to identify the best solution. In words, we look to find the greatest difference between the best weekly pick, and the next best weekly pick. Then we pick the team with the largest difference, i.e. the most valuable team. This approach is largely based on picking the teams with the largest opportunity cost.</p>
 <p>It is worth considering if this is optimal, there maybe a situation where the opportunity cost in one week is worth the gains across multiple weeks.</p>
-<p>Pseudocode:</p>
+<p>Pseudo code:</p>
 <ol style="list-style-type: decimal">
 <li>Sort by lowest win probability by week</li>
 <li>Calculate the difference for each week between the probabilities of the most likely team to lose, and the next likely.</li>
@@ -604,46 +633,59 @@ JAX
 <li>Remove this team and week from the pool.</li>
 <li>Go to the next largest difference and repeat.</li>
 </ol>
-<pre class="r"><code>most_constrained &lt;- function(df, teams, weeks){
-  tmp &lt;- df %&gt;% 
-    filter(!loser %in% teams) %&gt;%
-    filter(!week %in% weeks) %&gt;%
-    group_by(week) %&gt;%
-    arrange(week, p_lose) %&gt;% 
-    mutate(diff = lead(p_lose, 1) - p_lose) %&gt;%
-    slice(1L) %&gt;%
-    ungroup() %&gt;%
-    mutate(rank = rank(-diff)) %&gt;%
-    filter(rank == 1) %&gt;%
-    select(week, loser, p_lose)
+<pre class="r"><code>opp_cost &lt;- function(weeks, teams){
+  most_constrained &lt;- function(df, weeks, teams){
+    tmp &lt;- df %&gt;% 
+      filter(!loser %in% teams) %&gt;%
+      filter(!week %in% weeks) %&gt;%
+      group_by(week) %&gt;%
+      arrange(week, p_lose) %&gt;% 
+      mutate(diff = lead(p_lose, 1) - p_lose) %&gt;%
+      slice(1L) %&gt;%
+      ungroup() %&gt;%
+      mutate(rank = rank(-diff)) %&gt;%
+      filter(rank == 1) %&gt;%
+      select(week, loser, p_lose)
+    
+    return(tmp)
+  }
   
-  return(tmp)
+  picks3 &lt;- list()
+  
+  i &lt;- 1
+  while(i &lt;= total_weeks){
+    if(i&lt;=length(teams)){
+      pick &lt;- df %&gt;% 
+        filter(week == i) %&gt;%
+        filter(loser == teams[i])
+    } else {
+      pick &lt;- most_constrained(df, weeks, teams)
+      teams &lt;- append(teams, pick$loser)
+      weeks &lt;- append(weeks, pick$week)
+    }
+    
+    picks3[[i]] &lt;- pick
+    i = i + 1 
+    
+  }
+  
+  picks3 &lt;- do.call(rbind.data.frame, picks3)
+  picks3 &lt;- arrange(picks3, week)
+  
+  labs &lt;- c(&quot;Week&quot;, &quot;Team&quot;, &quot;ProbWin&quot;)
+  names(picks3) &lt;- labs
+    
+  return(picks3)
 }
 
 teams &lt;- c()
-weeks &lt;- c(seq(total_weeks + 1, 18, 1)) # add weeks we want to overlook. 
-picks3 &lt;- list()
-
-i &lt;- 1
-while(i &lt;= total_weeks){
-  pick &lt;- most_constrained(df, teams, weeks)
-  teams &lt;- append(teams, pick$loser)
-  weeks &lt;- append(weeks, pick$week)
-  picks3[[i]] &lt;- pick
-
-  i = i + 1 
-}
-
-picks3 &lt;- do.call(rbind.data.frame, picks3)
-picks3 &lt;- arrange(picks3, week)
-
-labs &lt;- c(&quot;Week&quot;, &quot;Team&quot;, &quot;ProbWin&quot;)
-names(picks3) &lt;- labs</code></pre>
+weeks &lt;- c(seq(total_weeks + 1, 18, 1))
+picks3 &lt;- opp_cost(weeks, teams)</code></pre>
 </div>
 <div id="visualize-differences-across-models" class="section level2">
 <h2>Visualize differences across models</h2>
-<div id="dumbbell-plot-of-approaches-1-and-2" class="section level3">
-<h3>Dumbbell plot of Approaches 1 and 2</h3>
+<div id="dumbbell-plot-of-approaches-1-2-and-3" class="section level3">
+<h3>Dumbbell plot of Approaches 1, 2, and 3</h3>
 <pre class="r"><code>labs &lt;- c(&quot;Week&quot;, &quot;Team&quot;, &quot;ProbWin&quot;)
 names(picks) &lt;- labs
 names(picks2) &lt;- labs
@@ -671,7 +713,7 @@ ggplot(data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
 </div>
 <div id="table-of-by-week-picks" class="section level3">
 <h3>Table of by week picks</h3>
-<p>We can see that Approach 2 has a lower probability on average, with a drastically lower probability of winning in week 4.</p>
+<p>We can see that Approach 3 has a lower probability on average, with a drastically lower probability of winning in week 4, as with Approach 2. Something that was overlooked in Approach 1.</p>
 <pre class="r"><code>tbl &lt;- left_join(picks, picks2, by=&quot;Week&quot;, suffix=c(&quot;_1&quot;, &quot;_2&quot;))
 tbl &lt;- left_join(tbl, picks3, by=&quot;Week&quot;, suffix=c(&quot;&quot;, &quot;_3&quot;))
 tbl &lt;- select(tbl, -c(&quot;Approach_1&quot;, &quot;Approach_2&quot;, &quot;Approach&quot;))
@@ -1058,6 +1100,403 @@ Avg. Prob
 </tbody>
 </table>
 </div>
+</div>
+<div id="deviations-in-the-first-round" class="section level2">
+<h2>Deviations in the first round</h2>
+<p>Pittsburgh is not picked up in any of the models, yet they are only 2% behind Dallas in Week 1. Below we look at the same three approaches but with Pittsburgh selected in Week 1.</p>
+<p>Comparing the results, we see the average performance is 0.01 higher when we force PIT in round 1. For this reason, it does not make sense to make a sole pick using PIT, however, it can be worth hedging a bet selecting them in the first round when multiple picks are submitted.</p>
+<pre class="r"><code>teams &lt;- c(&quot;PIT&quot;)
+weeks &lt;- c(1, seq(total_weeks + 1, 18, 1))
+weeks2 &lt;- c(1)
+
+picks &lt;- by_week(teams)
+picks2 &lt;- by_prob(weeks, teams)
+picks3 &lt;- opp_cost(weeks, teams)
+
+tbl &lt;- left_join(picks, picks2, by=&quot;Week&quot;, suffix=c(&quot;_1&quot;, &quot;_2&quot;))
+tbl &lt;- left_join(tbl, picks3, by=&quot;Week&quot;, suffix=c(&quot;&quot;, &quot;_3&quot;))
+names &lt;- c(&quot;Week&quot;, rep(c(&quot;Team&quot;, &quot;ProbWin&quot;),3))
+names(tbl) &lt;- names
+
+avg_1 &lt;- mean(as.numeric(picks$`Pr(Win)`))
+avg_2 &lt;- mean(as.numeric(picks2$`Pr(Win)`))
+avg_3 &lt;- mean(as.numeric(picks3$ProbWin))
+avg_row &lt;- data.frame(&quot;Avg. Prob&quot;, &quot;&quot;, avg_1, &quot;&quot;, avg_2, &quot;&quot;, avg_3)
+names(avg_row) &lt;- names(tbl)
+
+tbl &lt;- rbind(tbl, avg_row)
+
+kbl(tbl, digits=3) %&gt;%
+  kable_classic(full_width=F) %&gt;%
+  add_header_above(c(&quot; &quot; = 1, &quot;Approach 1&quot; = 2, &quot;Approach 2&quot; = 2, &quot;Approach 3&quot; = 2)) %&gt;%
+  row_spec(total_weeks+1, bold=T)</code></pre>
+<table class=" lightable-classic" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="empty-cells: hide;" colspan="1">
+</th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2">
+<div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">
+Approach 1
+</div>
+</th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2">
+<div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">
+Approach 2
+</div>
+</th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2">
+<div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">
+Approach 3
+</div>
+</th>
+</tr>
+<tr>
+<th style="text-align:left;">
+Week
+</th>
+<th style="text-align:left;">
+Team
+</th>
+<th style="text-align:right;">
+ProbWin
+</th>
+<th style="text-align:left;">
+Team
+</th>
+<th style="text-align:right;">
+ProbWin
+</th>
+<th style="text-align:left;">
+Team
+</th>
+<th style="text-align:right;">
+ProbWin
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+PIT
+</td>
+<td style="text-align:right;">
+0.283
+</td>
+<td style="text-align:left;">
+PIT
+</td>
+<td style="text-align:right;">
+0.283
+</td>
+<td style="text-align:left;">
+PIT
+</td>
+<td style="text-align:right;">
+0.283
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:left;">
+HOU
+</td>
+<td style="text-align:right;">
+0.106
+</td>
+<td style="text-align:left;">
+DET
+</td>
+<td style="text-align:right;">
+0.159
+</td>
+<td style="text-align:left;">
+DET
+</td>
+<td style="text-align:right;">
+0.159
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:left;">
+LAC
+</td>
+<td style="text-align:right;">
+0.262
+</td>
+<td style="text-align:left;">
+LAC
+</td>
+<td style="text-align:right;">
+0.262
+</td>
+<td style="text-align:left;">
+LAC
+</td>
+<td style="text-align:right;">
+0.262
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:left;">
+PHI
+</td>
+<td style="text-align:right;">
+0.286
+</td>
+<td style="text-align:left;">
+HOU
+</td>
+<td style="text-align:right;">
+0.081
+</td>
+<td style="text-align:left;">
+HOU
+</td>
+<td style="text-align:right;">
+0.081
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:left;">
+DET
+</td>
+<td style="text-align:right;">
+0.240
+</td>
+<td style="text-align:left;">
+MIA
+</td>
+<td style="text-align:right;">
+0.259
+</td>
+<td style="text-align:left;">
+MIA
+</td>
+<td style="text-align:right;">
+0.259
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:left;">
+ARI
+</td>
+<td style="text-align:right;">
+0.309
+</td>
+<td style="text-align:left;">
+PHI
+</td>
+<td style="text-align:right;">
+0.285
+</td>
+<td style="text-align:left;">
+PHI
+</td>
+<td style="text-align:right;">
+0.285
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:left;">
+CHI
+</td>
+<td style="text-align:right;">
+0.195
+</td>
+<td style="text-align:left;">
+CHI
+</td>
+<td style="text-align:right;">
+0.195
+</td>
+<td style="text-align:left;">
+CHI
+</td>
+<td style="text-align:right;">
+0.195
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+8
+</td>
+<td style="text-align:left;">
+NYG
+</td>
+<td style="text-align:right;">
+0.184
+</td>
+<td style="text-align:left;">
+NYG
+</td>
+<td style="text-align:right;">
+0.184
+</td>
+<td style="text-align:left;">
+JAX
+</td>
+<td style="text-align:right;">
+0.226
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+9
+</td>
+<td style="text-align:left;">
+JAX
+</td>
+<td style="text-align:right;">
+0.263
+</td>
+<td style="text-align:left;">
+NYJ
+</td>
+<td style="text-align:right;">
+0.270
+</td>
+<td style="text-align:left;">
+MIN
+</td>
+<td style="text-align:right;">
+0.278
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+10
+</td>
+<td style="text-align:left;">
+NYJ
+</td>
+<td style="text-align:right;">
+0.273
+</td>
+<td style="text-align:left;">
+OAK
+</td>
+<td style="text-align:right;">
+0.327
+</td>
+<td style="text-align:left;">
+NYJ
+</td>
+<td style="text-align:right;">
+0.273
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+11
+</td>
+<td style="text-align:left;">
+DAL
+</td>
+<td style="text-align:right;">
+0.267
+</td>
+<td style="text-align:left;">
+DAL
+</td>
+<td style="text-align:right;">
+0.267
+</td>
+<td style="text-align:left;">
+NYG
+</td>
+<td style="text-align:right;">
+0.206
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+12
+</td>
+<td style="text-align:left;">
+CAR
+</td>
+<td style="text-align:right;">
+0.317
+</td>
+<td style="text-align:left;">
+CAR
+</td>
+<td style="text-align:right;">
+0.317
+</td>
+<td style="text-align:left;">
+CAR
+</td>
+<td style="text-align:right;">
+0.317
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+13
+</td>
+<td style="text-align:left;">
+DEN
+</td>
+<td style="text-align:right;">
+0.220
+</td>
+<td style="text-align:left;">
+JAX
+</td>
+<td style="text-align:right;">
+0.187
+</td>
+<td style="text-align:left;">
+DEN
+</td>
+<td style="text-align:right;">
+0.220
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;">
+Avg. Prob
+</td>
+<td style="text-align:left;font-weight: bold;">
+</td>
+<td style="text-align:right;font-weight: bold;">
+0.247
+</td>
+<td style="text-align:left;font-weight: bold;">
+</td>
+<td style="text-align:right;font-weight: bold;">
+0.237
+</td>
+<td style="text-align:left;font-weight: bold;">
+</td>
+<td style="text-align:right;font-weight: bold;">
+0.234
+</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="in-developent.." class="section level1">
 <h1>In developent..</h1>
