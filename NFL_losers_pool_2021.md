@@ -147,7 +147,7 @@ kable(picks, digits = 2) %>%
   <tr>
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.20 </td>
+   <td style="text-align:right;"> 0.19 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 8 </td>
@@ -274,17 +274,17 @@ kable(picks2, digits = 2) %>%
   <tr>
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.26 </td>
+   <td style="text-align:right;"> 0.25 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.29 </td>
+   <td style="text-align:right;"> 0.27 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.20 </td>
+   <td style="text-align:right;"> 0.19 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 8 </td>
@@ -411,8 +411,8 @@ kable(picks3, digits = 2) %>%
   </tr>
   <tr>
    <td style="text-align:right;"> 2 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.16 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.19 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 3 </td>
@@ -427,22 +427,22 @@ kable(picks3, digits = 2) %>%
   <tr>
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.26 </td>
+   <td style="text-align:right;"> 0.25 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.29 </td>
+   <td style="text-align:right;"> 0.27 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.20 </td>
+   <td style="text-align:right;"> 0.19 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 8 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.23 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.18 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 9 </td>
@@ -456,8 +456,8 @@ kable(picks3, digits = 2) %>%
   </tr>
   <tr>
    <td style="text-align:right;"> 11 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.21 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.19 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 12 </td>
@@ -466,8 +466,8 @@ kable(picks3, digits = 2) %>%
   </tr>
   <tr>
    <td style="text-align:right;"> 13 </td>
-   <td style="text-align:left;"> DEN </td>
-   <td style="text-align:right;"> 0.22 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.19 </td>
   </tr>
 </tbody>
 </table>
@@ -603,8 +603,8 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:right;"> 0.106 </td>
    <td style="text-align:left;"> DET </td>
    <td style="text-align:right;"> 0.159 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.159 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.195 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 3 </td>
@@ -629,27 +629,27 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:left;"> DET </td>
    <td style="text-align:right;"> 0.240 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.259 </td>
+   <td style="text-align:right;"> 0.248 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.259 </td>
+   <td style="text-align:right;"> 0.248 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 6 </td>
    <td style="text-align:left;"> ARI </td>
    <td style="text-align:right;"> 0.309 </td>
    <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.285 </td>
+   <td style="text-align:right;"> 0.273 </td>
    <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.285 </td>
+   <td style="text-align:right;"> 0.273 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.195 </td>
+   <td style="text-align:right;"> 0.186 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.195 </td>
+   <td style="text-align:right;"> 0.186 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.195 </td>
+   <td style="text-align:right;"> 0.186 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
@@ -657,8 +657,8 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:right;"> 0.184 </td>
    <td style="text-align:left;"> NYG </td>
    <td style="text-align:right;"> 0.184 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.226 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.184 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
@@ -684,8 +684,8 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:right;"> 0.276 </td>
    <td style="text-align:left;"> IND </td>
    <td style="text-align:right;"> 0.276 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.206 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.188 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 12 </td>
@@ -702,17 +702,17 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:right;"> 0.220 </td>
    <td style="text-align:left;"> JAX </td>
    <td style="text-align:right;"> 0.187 </td>
-   <td style="text-align:left;"> DEN </td>
-   <td style="text-align:right;"> 0.220 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.187 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.246 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.236 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.245 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.233 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.226 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
@@ -806,8 +806,8 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:right;"> 0.106 </td>
    <td style="text-align:left;"> DET </td>
    <td style="text-align:right;"> 0.159 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.159 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.195 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 3 </td>
@@ -832,27 +832,27 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:left;"> DET </td>
    <td style="text-align:right;"> 0.240 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.259 </td>
+   <td style="text-align:right;"> 0.248 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.259 </td>
+   <td style="text-align:right;"> 0.248 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 6 </td>
    <td style="text-align:left;"> ARI </td>
    <td style="text-align:right;"> 0.309 </td>
    <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.285 </td>
+   <td style="text-align:right;"> 0.273 </td>
    <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.285 </td>
+   <td style="text-align:right;"> 0.273 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.195 </td>
+   <td style="text-align:right;"> 0.186 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.195 </td>
+   <td style="text-align:right;"> 0.186 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.195 </td>
+   <td style="text-align:right;"> 0.186 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
@@ -860,8 +860,8 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:right;"> 0.184 </td>
    <td style="text-align:left;"> NYG </td>
    <td style="text-align:right;"> 0.184 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.226 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.184 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
@@ -884,11 +884,11 @@ kbl(tbl, digits=3) %>%
   <tr>
    <td style="text-align:left;"> 11 </td>
    <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.267 </td>
+   <td style="text-align:right;"> 0.269 </td>
    <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.267 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.206 </td>
+   <td style="text-align:right;"> 0.269 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.188 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 12 </td>
@@ -905,22 +905,22 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:right;"> 0.220 </td>
    <td style="text-align:left;"> JAX </td>
    <td style="text-align:right;"> 0.187 </td>
-   <td style="text-align:left;"> DEN </td>
-   <td style="text-align:right;"> 0.220 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.187 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.247 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.237 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.246 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.234 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.228 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.059 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.070 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
@@ -1027,27 +1027,27 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:left;"> DET </td>
    <td style="text-align:right;"> 0.240 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.259 </td>
+   <td style="text-align:right;"> 0.248 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.259 </td>
+   <td style="text-align:right;"> 0.248 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 6 </td>
    <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.285 </td>
+   <td style="text-align:right;"> 0.273 </td>
    <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.285 </td>
+   <td style="text-align:right;"> 0.273 </td>
    <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.285 </td>
+   <td style="text-align:right;"> 0.273 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.195 </td>
+   <td style="text-align:right;"> 0.186 </td>
    <td style="text-align:left;"> DET </td>
    <td style="text-align:right;"> 0.178 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.195 </td>
+   <td style="text-align:right;"> 0.186 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
@@ -1079,9 +1079,9 @@ kbl(tbl, digits=3) %>%
   <tr>
    <td style="text-align:left;"> 11 </td>
    <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.267 </td>
+   <td style="text-align:right;"> 0.269 </td>
    <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.267 </td>
+   <td style="text-align:right;"> 0.269 </td>
    <td style="text-align:left;"> DET </td>
    <td style="text-align:right;"> 0.188 </td>
   </tr>
@@ -1106,20 +1106,20 @@ kbl(tbl, digits=3) %>%
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.235 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.234 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.238 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.236 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.228 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.225 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.064 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.073 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.072 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.068 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.067 </td>
   </tr>
 </tbody>
 </table>

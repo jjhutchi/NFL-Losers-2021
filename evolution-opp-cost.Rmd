@@ -1,0 +1,151 @@
+---
+title: "Imroving Approach 3"
+author: "Jordan Hutchings"
+date: "08/09/2021"
+output: 
+  html_document:
+    keep_md: true
+---
+
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.path = "README_figs/README-"
+)
+```
+
+Can we improve on Approach 3 by randomly removing preset picks, then picking 
+by the opportunity cost? The idea here is that our initial opportunity cost 
+approach doesn't look deep enough to identify the optimal solution, but 
+through randomly removing picks, we can identify a better week to make a pick. 
+
+We will measure the output of the model by the total sum of the weekly win 
+probabilities, with better selections having a lower sum. 
+
+## Data pre-processing
+```{r}
+pacman::p_load(data.table, tidyverse, knitr, kableExtra, ggalt)
+
+path <- "https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv"
+week1 <- as.Date("2021-09-09")
+
+df <- fread(path)
+
+# clean data: calculate week, get proj loser and prob of loss. 
+df <- df %>%
+  mutate(loser = ifelse(qbelo_prob1 > qbelo_prob2, team2, team1),
+         week = floor(as.numeric(difftime(date, week1, units="days")) / 7) + 1,
+         p_win = ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)) %>%
+  select(week, loser, p_win)
+```
+
+## Picks by oppertunity cost algorithm
+```{r}
+opp_cost <- function(data, weeks, teams){
+  
+  most_constrained <- function(data, weeks, teams){
+    # select the team & week pair with the greatest opportunity cost
+    tmp <- data %>% 
+      filter(
+        !loser %in% teams, 
+        !week %in% weeks
+        ) %>%
+      group_by(week) %>%
+      arrange(week, p_win) %>% 
+      mutate(diff = lead(p_win, 1) - p_win) %>%
+      slice(1L) %>%
+      ungroup() %>%
+      mutate(rank = rank(-diff)) %>%
+      filter(rank == 1) %>%
+      select(week, loser, p_win)
+    
+    return(tmp)
+  }
+  
+  picks <- list()
+  
+  # make all weekly picks
+  i <- 1
+  while(i <= total_weeks){
+    
+    if(i<=length(teams)){
+      # remove already picked weeks and teams
+      pick <- data %>% 
+        filter(week == i) %>%
+        filter(loser == teams[i])
+    } else {
+      pick <- most_constrained(data, weeks, teams)
+      teams <- append(teams, pick$loser)
+      weeks <- append(weeks, pick$week)
+    }
+    
+    picks[[i]] <- pick
+    i = i + 1 
+    
+  }
+  
+  # bind picks together
+  picks <- do.call(rbind.data.frame, picks)
+  picks <- arrange(picks, week)
+  
+  labs <- c("Week", "Team", "ProbWin")
+  names(picks) <- labs
+    
+  return(picks)
+}
+```
+
+We can get our base estimate with no restrictions on the weeks. 
+```{r}
+total_weeks <- 13
+teams <- c()
+weeks <- c(seq(total_weeks + 1, 18, 1))
+picks <- opp_cost(df, weeks, teams)
+
+kable(picks, digits = 2) %>%
+  kable_classic(full_width = F)
+```
+
+Now, we will maintain only some of the initial picks, filling in the remaining 
+spots with the optimal remaining picks. 
+
+There is a finite number of cases here. Lets assume we run the model on weeks 
+3 to 13, then there are 11 possible week team pairs that can be dropped. 
+There are a total of 2046 possible cases we can check: 
+
+$$ \sum_{i=1}^{10}\binom{11}{i} = 2046$$
+
+Notice we can either drop any of 1 to 10 of the initial starting values. Suppose 
+we run the opportunity cost algorithm with 5 of 11 weeks picked, there are a 
+total of $\binom{11}{5}$ ways of leaving 5 of the 11 weeks in the model. We are 
+starting at the case of $\binom{11}{0}$ where all the spots are filled.
+
+This approach generalizes to $ \sum_{i=1}^{W-1}\binom{W}{i} $ for $W$ total weeks 
+of picks remaining.
+
+The below gist is to remove previous picks systematically, compare the sums of 
+the picks, and save pick values which are lower than the initial value. 
+
+We need to tell the function to fill the remainder of the picks but we cannot 
+pass this through the teams or weeks argument. These arguments tell the function 
+the teams have already been picked. 
+
+Maybe the easiest approach is to take a given list and fill in the remaining spots. 
+
+```{r}
+shock_picks <- function(picks, drop){
+  picks <- filter(df, !week %in% drop) # keep weeks not in the drop list
+  
+  # update pool of potential picks
+  tmp <- df %>%
+    filter(!loser %in% picks$Team, 
+           !week %in% picks$week)
+  #TODO: update here... 
+  # make pick
+  opp_cost(tmp, weeks, picks)
+  
+}
+
+# weekly picks to drop and replace
+drop <- c(1, 2, 3)
+```
