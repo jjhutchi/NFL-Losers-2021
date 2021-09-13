@@ -10,41 +10,68 @@ output:
 
 
 
-## Download data from [FiveThirtyEight](https://projects.fivethirtyeight.com/2021-nfl-predictions/games/)
-I construct the week numbers, and collect the forecasted losing team, as well as 
-their losing probability. 
+Our annual NFL losers pool runs by each enterant having to pick one team per week. 
+The objective is to pick one team to lose each week, if your team wins, you are 
+out of the pool. The catch is that once a team is picked it cannot be picked 
+again. 
 
+My approach is simple, use the NFL forecast data from [FiveThirtyEight](https://projects.fivethirtyeight.com/2021-nfl-predictions/games/) 
+and optimize my picks to minimize the total win probability across the season. 
 
+## Data pre-processing
 
 ```r
-pacman::p_load(data.table, tidyverse, knitr, kableExtra, ggalt)
+pacman::p_load(data.table, ggplot2, ggalt, dplyr, knitr, kableExtra)
 
 path <- "https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv"
 week1 <- as.Date("2021-09-09")
 
-df <- fread(path)
+dt <- fread(path)
 
-# clean data: calculate week, get proj loser and prob of loss. 
-df <- df %>%
-  mutate(loser = ifelse(qbelo_prob1 > qbelo_prob2, team2, team1),
-         week = floor(as.numeric(difftime(date, week1, units="days")) / 7) + 1,
-         p_lose = ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)) %>%
-  select(week, loser, p_lose)
+# calculate week, get proj loser and prob of loss. 
+total_weeks <- 13
+time_period <- seq(3, total_weeks, 1)
+
+dt[, loser:=ifelse(qbelo_prob1 > qbelo_prob2, team2, team1)]
+dt[, p_win:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)]
+dt[, week:=floor(as.numeric(difftime(date, week1, units="days")) / 7) + 1]
+
+cols <- c("week", "loser", "p_win")
+dt <- dt[, .(week, loser, p_win)]
+
+dt <- dt[week %in% time_period]
+
+# remove past picks
+past_picks <- c("DAL")
+dt <- dt[!loser %in% past_picks]
 ```
 
 ## Visualize the possible picks per week
+To get a sense of the data we are working with, below is a heatmap of the win 
+probabilities for each underdog across the entire season. 
+
 
 ```r
-ggplot(df, aes(week, loser, fill=p_lose)) + 
-    geom_tile() + scale_fill_viridis_c("Pr(Win)") + 
-  theme_bw() + labs(title = "Probability of winning for underdog, week X team")
+ggplot(dt, aes(week, loser, fill=p_win)) + 
+  geom_tile() + 
+  scale_fill_viridis_c("Pr(Win)") + 
+  theme_bw() + 
+  labs(title = "Pr(Win | underdog), week X team") + 
+  xlim(3, 13)
 ```
 
 ![](README_figs/README-unnamed-chunk-3-1.png)<!-- -->
 
-The Texans and Lions are the most likely to lose in most weeks. We can see that 
-the Texans stand out as an obvious pick in Week 2, however are more likely to lose 
-in week 4.
+```r
+ggplot() + 
+  geom_point(data = dt, aes(x=week, y=p_win), alpha=0.8, color="gray") + 
+  coord_flip() + 
+  labs(title = "Candidate picks per week", 
+       x = "Week Number", 
+       y = "Win Probability")
+```
+
+![](README_figs/README-unnamed-chunk-3-2.png)<!-- -->
 
 ## Identifying the optimal time to pick each team
 We want to identify the optimal pick per week given the set of probabilities 
@@ -55,84 +82,80 @@ Possible approaches:
 
 1.  Pick the lowest probability of winning each week
 2.  Pick the lowest probability of winning each team
-3.  Pick the team in a given week with the largest change if they're 
-not selected.
-4.  [TBD] Pick the combination of games that lead to the lowest sum of win 
-probabilities across all the weeks. 
+3.  Pick the team-week combination based on the oppertunity 
+cost of not making the best pick that week
+4.  Small changes in picks from Approach 3.
 
-Lets compare the outcomes below, with our outcome of choice being the 
-average of the probability of winning. 
+# Comparing approaches
+Note: 
+
+- we want to compare each approach based on previous picks already made.
+- last year, the contest ran for 13 weeks. Therefore, we will optimize picks 
+only for the first 13 weeks. 
+  - Optionally, the process should be repeated using only 8 or 10 weeks. 
+  This is meant to put greater weight on outlasting other competitors. 
+- There are rebuys in weeks 1 and 2, so we will not include these weeks in the 
+model.
+- I will try and generalize the approaches as individual functions, this will 
+allow for ease testing different cases. 
 
 ## Approach 1: 
-Once a team is picked in a given week, we remove the team. We iterate through 
-picking the team with the lowest probability.
+Simply pick the team with the lowest probability starting week 3.
 
 
 ```r
-total_weeks <- 13
-
-by_week <- function(teams){
-  picks <- list()
+by_week <- function(past_picks, past_weeks){
   
-  for(w in 1:total_weeks){
-    if(w<=length(teams)){
-      pick <- df %>% 
-        filter(week == w) %>%
-        filter(loser == teams[w])
-    } else {
-      pick <- df %>% 
-        filter(!loser %in% teams) %>%
-        filter(week == w) %>%
-        arrange(p_lose) %>%
-        slice(1L)
-    teams <- append(teams, pick$loser)
-    }
+  total_weeks <- 13
+  start_week <- 3
+
+  # loop through filling in each week
+  for(i in start_week:total_weeks){
+    pick <- dt[!loser %in% past_picks & week == i]
+    pick <- pick[order(week, p_win)]
+    pick <- pick[, .SD[1]]
     
-    picks[[w]] <- pick
-      
-    
+    past_weeks <- append(past_weeks, pick$week)
+    past_picks <- append(past_picks, pick$loser)
+  
   }
-  picks <- do.call(rbind.data.frame, picks)
-  names(picks) <- c("Week", "Team", "Pr(Win)")
+  
+  # make into readable table
+  picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
+  picks <- merge(picks, dt, on = week)
   
   return(picks)
+    
 }
 
-teams <- c()
-picks <- by_week(teams)
+past_picks <- c("DAL")
+past_weeks <- c(1)
 
-kable(picks, digits = 2) %>%
+picks1 <- by_week(past_picks, past_weeks)
+
+
+kable(picks1, digits = 2) %>%
   kable_classic(full_width = F)
 ```
 
 <table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
  <thead>
   <tr>
-   <th style="text-align:right;"> Week </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> Pr(Win) </th>
+   <th style="text-align:right;"> week </th>
+   <th style="text-align:left;"> loser </th>
+   <th style="text-align:right;"> p_win </th>
   </tr>
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.26 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 2 </td>
-   <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.11 </td>
-  </tr>
-  <tr>
    <td style="text-align:right;"> 3 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.26 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.16 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 4 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.29 </td>
+   <td style="text-align:left;"> HOU </td>
+   <td style="text-align:right;"> 0.12 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 5 </td>
@@ -141,102 +164,85 @@ kable(picks, digits = 2) %>%
   </tr>
   <tr>
    <td style="text-align:right;"> 6 </td>
-   <td style="text-align:left;"> ARI </td>
-   <td style="text-align:right;"> 0.31 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 7 </td>
-   <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.19 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 8 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.18 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 9 </td>
    <td style="text-align:left;"> JAX </td>
    <td style="text-align:right;"> 0.26 </td>
   </tr>
   <tr>
+   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:left;"> CHI </td>
+   <td style="text-align:right;"> 0.17 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 8 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.15 </td>
+  </tr>
+  <tr>
+   <td style="text-align:right;"> 9 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.20 </td>
+  </tr>
+  <tr>
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.27 </td>
+   <td style="text-align:right;"> 0.29 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 11 </td>
    <td style="text-align:left;"> IND </td>
-   <td style="text-align:right;"> 0.28 </td>
+   <td style="text-align:right;"> 0.29 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 12 </td>
-   <td style="text-align:left;"> CAR </td>
+   <td style="text-align:left;"> OAK </td>
    <td style="text-align:right;"> 0.32 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 13 </td>
    <td style="text-align:left;"> DEN </td>
-   <td style="text-align:right;"> 0.22 </td>
+   <td style="text-align:right;"> 0.24 </td>
   </tr>
 </tbody>
 </table>
 
 ## Approach 2: 
-Pick the lowest probability for each team. 
+Pick the lowest probability for each team, rather than starting in week 3 as 
+we did in Approach 1, we pick by the lowest overall win probability.
+
 We can iterate through picking the lowest absolute probability, then add that 
 team and week and remove from the list of contenders. 
 
-Last year the winner was determined in Week 13. We can therefore only pick the 
-lowest probabilities from the first 13 weeks. This has a slight improvement 
-from if we include all 18 weeks, however most of the changes are seen in later 
-weeks (week 9).
-
 
 ```r
-by_prob <- function(weeks2, teams2){
-  picks2 <- list()
-  w <- 1
+by_prob <- function(past_picks, past_weeks){
   
-  while(w <= total_weeks){
+  total_weeks <- 13
+  start_week <- 3
+  
+  for(i in start_week:total_weeks){
     
-    if(w <= length(teams2)){
-      pick <- df %>% 
-        filter(week == w) %>%
-        filter(loser == teams2[w])
-      
-    } else {
-      tmp <- df
-      tmp <- subset(tmp, !(loser%in%teams2))
-      tmp <- subset(tmp, !(week%in%weeks2))
-      tmp <- subset(tmp, week <= total_weeks)
-      
-      pick <- tmp %>%
-        arrange(p_lose) %>%
-        slice(1L)
-      weeks2 <- append(weeks2, pick$week)
-      teams2 <- append(teams2, pick$loser)
-      
-    }
+    pick <- dt[week %in% c(start_week:total_weeks)]
+    pick <- pick[!loser %in% past_picks & !week %in% past_weeks]
+    pick <- pick[order(p_win)]
+    pick <- pick[, .SD[1]]
     
-    picks2[[w]] <- pick
-    w = w+1
-    
-    
+    past_weeks <- append(past_weeks, pick$week)
+    past_picks <- append(past_picks, pick$loser)
     
   }
   
-  picks2 <- do.call(rbind.data.frame, picks2)
-  picks2 <- arrange(picks2, week)
-  names(picks2) <- c("Week", "Team", "Pr(Win)")
+  # make into readable table
+  picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
+  picks <- merge(picks, dt, on = week)
   
-  return(picks2)
+  return(picks)
 
 }
-weeks2 <- c()
-teams2 <- c()
 
-picks2 <- by_prob(weeks2, teams2)
+past_picks <- c("DAL")
+past_weeks <- c(1)
+
+picks2 <- by_prob(past_picks, past_weeks)
 
 kable(picks2, digits = 2) %>%
   kable_classic(full_width = F)
@@ -245,151 +251,120 @@ kable(picks2, digits = 2) %>%
 <table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
  <thead>
   <tr>
-   <th style="text-align:right;"> Week </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> Pr(Win) </th>
+   <th style="text-align:right;"> week </th>
+   <th style="text-align:left;"> loser </th>
+   <th style="text-align:right;"> p_win </th>
   </tr>
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.26 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 2 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.16 </td>
-  </tr>
-  <tr>
    <td style="text-align:right;"> 3 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.26 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.16 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 4 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.08 </td>
+   <td style="text-align:right;"> 0.12 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.25 </td>
+   <td style="text-align:right;"> 0.26 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 6 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.27 </td>
+   <td style="text-align:left;"> OAK </td>
+   <td style="text-align:right;"> 0.31 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 7 </td>
-   <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.19 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.15 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.18 </td>
+   <td style="text-align:right;"> 0.15 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 9 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.27 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.20 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 10 </td>
-   <td style="text-align:left;"> OAK </td>
-   <td style="text-align:right;"> 0.33 </td>
+   <td style="text-align:left;"> NYJ </td>
+   <td style="text-align:right;"> 0.29 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 11 </td>
    <td style="text-align:left;"> IND </td>
-   <td style="text-align:right;"> 0.28 </td>
+   <td style="text-align:right;"> 0.29 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 12 </td>
-   <td style="text-align:left;"> CAR </td>
-   <td style="text-align:right;"> 0.32 </td>
+   <td style="text-align:left;"> MIN </td>
+   <td style="text-align:right;"> 0.33 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 13 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.19 </td>
+   <td style="text-align:right;"> 0.14 </td>
   </tr>
 </tbody>
 </table>
 
 ## Approach 3: 
-We can apply a different algorithm to identify the best solution. 
-In words, we look to find the greatest difference between the best 
-weekly pick, and the next best weekly pick. Then we pick the team 
-with the largest difference, i.e. the most valuable team.
-This approach is largely based on picking the teams with the largest 
-opportunity cost. 
+
+By picking teams based on the opportunity cost, we are able to pick the best 
+team-week pairing in terms of the cost of not picking that pair. For example, 
+picking the lowest team in week 1 may mean having to take a larger delta for 
+the same team in week 4. 
+
+To do this, we calculate the difference in probabilities from the best weekly 
+pick, and the next best. We then rank these differences and pick the overall 
+greatest difference. We then remove the week and team from the pool, and repeat.
 
 It is worth considering if this is optimal, there maybe a situation where 
 the opportunity cost in one week is worth the gains across multiple weeks. 
 
-Pseudo code:
-
-1. Sort by lowest win probability by week
-2. Calculate the difference for each week between the probabilities of the 
-most likely team to lose, and the next likely. 
-3. Rank the differences for the most and second most likely teams. 
-4. Take the team with the largest difference. 
-5. Remove this team and week from the pool. 
-6. Go to the next largest difference and repeat. 
+This is done below in Approach 4. 
 
 
 ```r
-opp_cost <- function(weeks, teams){
-  most_constrained <- function(df, weeks, teams){
-    tmp <- df %>% 
-      filter(!loser %in% teams) %>%
-      filter(!week %in% weeks) %>%
-      group_by(week) %>%
-      arrange(week, p_lose) %>% 
-      mutate(diff = lead(p_lose, 1) - p_lose) %>%
-      slice(1L) %>%
-      ungroup() %>%
-      mutate(rank = rank(-diff)) %>%
-      filter(rank == 1) %>%
-      select(week, loser, p_lose)
-    
-    return(tmp)
-  }
+by_oc <- function(past_picks, past_weeks){
+
+  start_week <- 3
+  total_weeks <- 13
   
-  picks3 <- list()
-  
-  i <- 1
-  while(i <= total_weeks){
-    if(i<=length(teams)){
-      pick <- df %>% 
-        filter(week == i) %>%
-        filter(loser == teams[i])
-    } else {
-      pick <- most_constrained(df, weeks, teams)
-      teams <- append(teams, pick$loser)
-      weeks <- append(weeks, pick$week)
-    }
+  for(i in start_week:total_weeks){
     
-    picks3[[i]] <- pick
-    i = i + 1 
+    pick <- dt[week %in% c(start_week:total_weeks)]
+    pick <- pick[!week %in% past_weeks & !loser %in% past_picks, ]
+    pick <- pick[order(week, p_win)]
+    pick[, oc:= shift(p_win, 1, type="lead") - p_win, by = week]
+    pick <- pick[, .SD[1], week]
+    pick <- pick[order(-oc)]
+    pick <- pick[, .SD[1]]
+    
+    past_weeks <- append(past_weeks, pick$week)
+    past_picks <- append(past_picks, pick$loser)
     
   }
   
-  picks3 <- do.call(rbind.data.frame, picks3)
-  picks3 <- arrange(picks3, week)
+  # make into readable table
+  picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
+  picks <- merge(picks, dt, on = week)
   
-  labs <- c("Week", "Team", "ProbWin")
-  names(picks3) <- labs
-    
-  return(picks3)
+  return(picks)
+  
 }
 
-teams <- c()
-weeks <- c(seq(total_weeks + 1, 18, 1))
-picks3 <- opp_cost(weeks, teams)
+past_weeks <- c(1)
+past_picks <- c("DAL")
+
+picks3 <- by_oc(past_picks, past_weeks)
 
 kable(picks3, digits = 2) %>%
   kable_classic(full_width = F)
@@ -398,61 +373,51 @@ kable(picks3, digits = 2) %>%
 <table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
  <thead>
   <tr>
-   <th style="text-align:right;"> Week </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> ProbWin </th>
+   <th style="text-align:right;"> week </th>
+   <th style="text-align:left;"> loser </th>
+   <th style="text-align:right;"> p_win </th>
   </tr>
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:right;"> 1 </td>
-   <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.26 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 2 </td>
-   <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.19 </td>
-  </tr>
-  <tr>
    <td style="text-align:right;"> 3 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.26 </td>
+   <td style="text-align:left;"> NYJ </td>
+   <td style="text-align:right;"> 0.21 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 4 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.08 </td>
+   <td style="text-align:right;"> 0.12 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.25 </td>
+   <td style="text-align:right;"> 0.26 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 6 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.27 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.19 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.19 </td>
+   <td style="text-align:right;"> 0.17 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.18 </td>
+   <td style="text-align:right;"> 0.15 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 9 </td>
-   <td style="text-align:left;"> MIN </td>
-   <td style="text-align:right;"> 0.28 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.20 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 10 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.27 </td>
+   <td style="text-align:left;"> CAR </td>
+   <td style="text-align:right;"> 0.31 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 11 </td>
@@ -461,17 +426,219 @@ kable(picks3, digits = 2) %>%
   </tr>
   <tr>
    <td style="text-align:right;"> 12 </td>
-   <td style="text-align:left;"> CAR </td>
+   <td style="text-align:left;"> OAK </td>
    <td style="text-align:right;"> 0.32 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 13 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.19 </td>
+   <td style="text-align:right;"> 0.14 </td>
   </tr>
 </tbody>
 </table>
 
+## Approach 4: 
+Can we improve on Approach 3 by randomly removing Approach 3 picks, then picking 
+by the opportunity cost? The idea here is that our initial opportunity cost 
+approach doesn't look deep enough to identify the optimal solution, but 
+through randomly removing picks, we can identify a better week to make a pick. 
+
+We will measure the output of the model by the total sum of the weekly win 
+probabilities, with better selections having a lower sum. 
+
+we will maintain only some of the initial picks, filling in the remaining 
+spots with the optimal remaining picks. 
+
+There is a finite number of cases where we keep some of the initial picks. 
+Lets assume we run the model on weeks 3 to 13, then there are 11 possible week 
+team pairs that can be dropped. In this case, there are a total of 2046 possible 
+cases we can check: 
+
+$$ \sum_{i=1}^{10}\binom{11}{i} = 2046$$
+
+Notice we can either drop any of 1 to 10 of the initial starting values. Suppose 
+we run the opportunity cost algorithm with 5 of 11 weeks picked, there are a 
+total of $\binom{11}{5}$ ways of leaving 5 of the 11 weeks in the model. We are 
+starting at the case of $\binom{11}{0}$ where all the spots are filled.
+
+This approach generalizes to $ \sum_{i=1}^{W-1}\binom{W}{i} $ for $W$ total weeks 
+of picks remaining.
+
+We can make use of the $2^N$ functional form here and systematically loop through 
+binary representations of each of the cases, where $1$ means to keep the row, 
+and $0$ removes it. 
+
+
+
+```r
+number2binary <- function(number, noBits) {
+   binary_vector <- rev(as.numeric(intToBits(number)))
+   if(missing(noBits)) {
+     return(binary_vector)
+   } else {
+     binary_vector[-(1:(length(binary_vector) - noBits))]
+   }
+}
+
+# example of cases over 5 weeks to chose from
+weeks <- 5
+end <- 2^weeks
+
+for(i in 1:end - 1){
+  print(number2binary(i, weeks))
+}
+```
+
+```
+## [1] 0 0 0 0 0
+## [1] 0 0 0 0 1
+## [1] 0 0 0 1 0
+## [1] 0 0 0 1 1
+## [1] 0 0 1 0 0
+## [1] 0 0 1 0 1
+## [1] 0 0 1 1 0
+## [1] 0 0 1 1 1
+## [1] 0 1 0 0 0
+## [1] 0 1 0 0 1
+## [1] 0 1 0 1 0
+## [1] 0 1 0 1 1
+## [1] 0 1 1 0 0
+## [1] 0 1 1 0 1
+## [1] 0 1 1 1 0
+## [1] 0 1 1 1 1
+## [1] 1 0 0 0 0
+## [1] 1 0 0 0 1
+## [1] 1 0 0 1 0
+## [1] 1 0 0 1 1
+## [1] 1 0 1 0 0
+## [1] 1 0 1 0 1
+## [1] 1 0 1 1 0
+## [1] 1 0 1 1 1
+## [1] 1 1 0 0 0
+## [1] 1 1 0 0 1
+## [1] 1 1 0 1 0
+## [1] 1 1 0 1 1
+## [1] 1 1 1 0 0
+## [1] 1 1 1 0 1
+## [1] 1 1 1 1 0
+## [1] 1 1 1 1 1
+```
+
+### Look for better solutions
+
+If better solutions are found, they are saved to their own `trial_i.csv` file.
+
+```r
+check_other_solns <- function(picks){
+  
+  base_picks <- picks
+  
+  start_week <- 2
+  total_weeks <- 13
+  
+  cases <- 2^(total_weeks - start_week)
+  crit <- sum(base_picks$p_win)
+  
+  results <- list()
+  
+  for(i in 1:cases){
+    
+    drop <- as.logical(number2binary(i, nrow(base_picks)))
+    dt_d <- base_picks[drop]
+    
+    past_weeks <- c(dt_d$week)
+    past_picks <- c(dt_d$loser)
+    
+    start <- length(past_weeks)
+    end <- total_weeks-2
+    
+    for(j in start:end){
+    
+      tmp <- dt[!week %in% past_weeks & !loser %in% past_picks, ]
+      tmp <- tmp[order(week, p_win)]
+      tmp[, oc:=shift(p_win, 1, type="lead") - p_win, by = week]
+      tmp <- tmp[, .SD[1], week]
+      tmp <- tmp[order(-oc)]
+      pick <- tmp[, .SD[1]]
+      
+      past_weeks <- append(past_weeks, pick$week)
+      past_picks <- append(past_picks, pick$loser)
+      
+    }
+    
+    # make into readable table
+    picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
+    picks <- merge(picks, dt, on = week)
+    
+    # get total probability from new case
+    test <- sum(picks$p_win)
+    
+    # save results into table
+    picks$trial <- i
+    results[[i]] <- picks
+    
+    # save better lineups to separate folder 
+    if(test < crit){
+      crit <- test
+      print(paste("Better solution found, case: ", i))
+      fwrite(picks, file = paste0("cases/trial_", i, ".csv"))
+    }
+    
+  }
+  
+  # get results table
+  trial_results <- do.call(rbind.data.frame, results)
+    
+  return(trial_results)
+  
+}
+
+# loop through each of the picks
+
+a1 <- check_other_solns(picks1)
+```
+
+```
+## [1] "Better solution found, case:  1"
+## [1] "Better solution found, case:  2"
+```
+
+```r
+a2 <- check_other_solns(picks2)
+```
+
+```
+## [1] "Better solution found, case:  1"
+```
+
+```r
+a3 <- check_other_solns(picks3)
+
+a1$start <- "Approach 1"
+a2$start <- "Approach 2"
+a3$start <- "Approach 3"
+
+check_plot <- rbind(a1, a2, a3)
+```
+
+We only need to check Approach 3 above, as Approaches 1 and 2 will always result 
+in Approach 3 in the case where we remove all of their choices. Approaches 1 and 2 
+move towards the optimal solution, Approach 3 remains at the optimal solution, 
+and therefore doesn't change when we plot the trial totals.
+
+
+```r
+totals <- check_plot[, .(total=sum(p_win)), .(trial, start)]
+ggplot(totals, aes(x=trial, y=total)) + 
+  geom_point() + 
+  theme_bw() + 
+  labs(title = "Total probability by trial", 
+       x = "Trial Number", 
+       y = "Total Probability") + 
+  facet_wrap(.~start)
+```
+
+![](README_figs/README-unnamed-chunk-9-1.png)<!-- -->
 
 ## Visualize differences across models
 
@@ -479,15 +646,15 @@ kable(picks3, digits = 2) %>%
 
 ```r
 labs <- c("Week", "Team", "ProbWin")
-names(picks) <- labs
+names(picks1) <- labs
 names(picks2) <- labs
 names(picks3) <- labs
 
-picks$Approach <- 1
+picks1$Approach <- 1
 picks2$Approach <- 2
 picks3$Approach <- 3
 
-data <- rbind(picks, picks2, picks3)
+data <- rbind(picks1, picks2, picks3)
 data$Approach <- as.factor(data$Approach)
 
 
@@ -496,6 +663,7 @@ theme_set(theme_bw(12))
 ggplot(data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) + 
   geom_line(aes(group = Week), color="#e3e2e1", size = 2) +
   geom_point(size = 3) + 
+  xlim(3, 13) +
   coord_flip() + 
   scale_color_viridis_d() + 
   labs(title = "Comparing weekly win probabilities per Approach", 
@@ -503,25 +671,24 @@ ggplot(data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
        y = "Win Probability")
 ```
 
-![](README_figs/README-unnamed-chunk-7-1.png)<!-- -->
-
-### Selection plot
-The selection plot shows all the candidate picks - probabilities for the underdog - 
-with the picks made by each approach shaded in by a different colour. 
+![](README_figs/README-unnamed-chunk-10-1.png)<!-- -->
 
 
 ```r
 ggplot() + 
-  geom_point(data = df, aes(x=week, y=p_lose), alpha=0.2, color="gray") + 
-  geom_point(data = data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
+  geom_point(data = dt, aes(x=week, y=p_win), alpha=0.3, color="black") + 
+  geom_point(data = data, 
+             aes(x=Week, y=ProbWin, color = Approach, shape = Approach), 
+             size = 3, 
+             alpha = 0.7) +
   scale_color_viridis_d() + 
   coord_flip() + 
-  labs(title = "Selection plot for each approach", 
+  labs(title = "Selection plot - candidate and picks made by approach", 
        x = "Week Number", 
        y = "Win Probability")
 ```
 
-![](README_figs/README-unnamed-chunk-8-1.png)<!-- -->
+![](README_figs/README-unnamed-chunk-11-1.png)<!-- -->
 
 
 ### Table of by week picks
@@ -540,440 +707,24 @@ pick.
 
 
 ```r
-tbl <- left_join(picks, picks2, by="Week", suffix=c("_1", "_2"))
+tbl <- left_join(picks1, picks2, by="Week", suffix=c("_1", "_2"))
 tbl <- left_join(tbl, picks3, by="Week", suffix=c("", "_3"))
 tbl <- select(tbl, -c("Approach_1", "Approach_2", "Approach"))
 names <- c("Week", rep(c("Team", "ProbWin"),3))
 names(tbl) <- names
 
-avg_1 <- mean(as.numeric(picks$ProbWin))
+avg_1 <- mean(as.numeric(picks1$ProbWin))
 avg_2 <- mean(as.numeric(picks2$ProbWin))
 avg_3 <- mean(as.numeric(picks3$ProbWin))
 avg_row <- data.frame("Mean", "", avg_1, "", avg_2, "", avg_3)
 names(avg_row) <- names(tbl)
 
-sd_1 <- sd(as.numeric(picks$ProbWin))
+sd_1 <- sd(as.numeric(picks1$ProbWin))
 sd_2 <- sd(as.numeric(picks2$ProbWin))
 sd_3 <- sd(as.numeric(picks3$ProbWin))
 sd_row <- data.frame("SD", "", sd_1, "", sd_2, "", sd_3)
 names(sd_row) <- names(tbl)
 
-
-tbl <- rbind(tbl, avg_row)
-tbl <- rbind(tbl, sd_row)
-
-kbl(tbl, digits=3) %>%
-  kable_classic(full_width=F) %>%
-  add_header_above(c(" " = 1, "Approach 1" = 2, "Approach 2" = 2, "Approach 3" = 2)) %>%
-  row_spec(total_weeks+1, bold=T) %>%
-  row_spec(total_weeks+2, bold=T)
-```
-
-<table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
- <thead>
-<tr>
-<th style="empty-cells: hide;" colspan="1"></th>
-<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Approach 1</div></th>
-<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Approach 2</div></th>
-<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Approach 3</div></th>
-</tr>
-  <tr>
-   <th style="text-align:left;"> Week </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> ProbWin </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> ProbWin </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> ProbWin </th>
-  </tr>
- </thead>
-<tbody>
-  <tr>
-   <td style="text-align:left;"> 1 </td>
-   <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.264 </td>
-   <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.264 </td>
-   <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.264 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 2 </td>
-   <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.106 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.159 </td>
-   <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.195 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 3 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.262 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.262 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.262 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 4 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.286 </td>
-   <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.081 </td>
-   <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.081 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 5 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.240 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.248 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.248 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 6 </td>
-   <td style="text-align:left;"> ARI </td>
-   <td style="text-align:right;"> 0.309 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.273 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.273 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 7 </td>
-   <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.186 </td>
-   <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.186 </td>
-   <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.186 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 8 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.184 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.184 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.184 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 9 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.263 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.270 </td>
-   <td style="text-align:left;"> MIN </td>
-   <td style="text-align:right;"> 0.278 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 10 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.273 </td>
-   <td style="text-align:left;"> OAK </td>
-   <td style="text-align:right;"> 0.327 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.273 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 11 </td>
-   <td style="text-align:left;"> IND </td>
-   <td style="text-align:right;"> 0.276 </td>
-   <td style="text-align:left;"> IND </td>
-   <td style="text-align:right;"> 0.276 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.188 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 12 </td>
-   <td style="text-align:left;"> CAR </td>
-   <td style="text-align:right;"> 0.317 </td>
-   <td style="text-align:left;"> CAR </td>
-   <td style="text-align:right;"> 0.317 </td>
-   <td style="text-align:left;"> CAR </td>
-   <td style="text-align:right;"> 0.317 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 13 </td>
-   <td style="text-align:left;"> DEN </td>
-   <td style="text-align:right;"> 0.220 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.187 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.187 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;font-weight: bold;"> Mean </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.245 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.233 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.226 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;font-weight: bold;"> SD </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.070 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.063 </td>
-  </tr>
-</tbody>
-</table>
-
-## Deviations in the first round
-Pittsburgh is not picked up in any of the models, yet they are only 2% behind 
-Dallas in Week 1. Below we look at the same three approaches but with Pittsburgh 
-selected in Week 1. 
-
-Comparing the results, we see the average performance is 0.01 higher when we 
-force PIT in round 1. For this reason, it does not make sense to make a sole 
-pick using PIT, however, it can be worth hedging a bet selecting them in the 
-first round when multiple picks are submitted.
-
-
-```r
-teams <- c("PIT")
-weeks <- c(1, seq(total_weeks + 1, 18, 1))
-
-picks <- by_week(teams)
-picks2 <- by_prob(weeks, teams)
-picks3 <- opp_cost(weeks, teams)
-
-tbl <- left_join(picks, picks2, by="Week", suffix=c("_1", "_2"))
-tbl <- left_join(tbl, picks3, by="Week", suffix=c("", "_3"))
-names <- c("Week", rep(c("Team", "ProbWin"),3))
-names(tbl) <- names
-
-avg_1 <- mean(as.numeric(picks$`Pr(Win)`))
-avg_2 <- mean(as.numeric(picks2$`Pr(Win)`))
-avg_3 <- mean(as.numeric(picks3$ProbWin))
-avg_row <- data.frame("Mean", "", avg_1, "", avg_2, "", avg_3)
-names(avg_row) <- names(tbl)
-
-sd_1 <- sd(as.numeric(picks$`Pr(Win)`))
-sd_2 <- sd(as.numeric(picks2$`Pr(Win)`))
-sd_3 <- sd(as.numeric(picks3$ProbWin))
-sd_row <- data.frame("SD", "", sd_1, "", sd_2, "", sd_3)
-names(sd_row) <- names(tbl)
-
-tbl <- rbind(tbl, avg_row)
-tbl <- rbind(tbl, sd_row)
-
-kbl(tbl, digits=3) %>%
-  kable_classic(full_width=F) %>%
-  add_header_above(c(" " = 1, "Approach 1" = 2, "Approach 2" = 2, "Approach 3" = 2)) %>%
-  row_spec(total_weeks+1, bold=T) %>%
-  row_spec(total_weeks+2, bold=T)
-```
-
-<table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
- <thead>
-<tr>
-<th style="empty-cells: hide;" colspan="1"></th>
-<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Approach 1</div></th>
-<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Approach 2</div></th>
-<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Approach 3</div></th>
-</tr>
-  <tr>
-   <th style="text-align:left;"> Week </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> ProbWin </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> ProbWin </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> ProbWin </th>
-  </tr>
- </thead>
-<tbody>
-  <tr>
-   <td style="text-align:left;"> 1 </td>
-   <td style="text-align:left;"> PIT </td>
-   <td style="text-align:right;"> 0.283 </td>
-   <td style="text-align:left;"> PIT </td>
-   <td style="text-align:right;"> 0.283 </td>
-   <td style="text-align:left;"> PIT </td>
-   <td style="text-align:right;"> 0.283 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 2 </td>
-   <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.106 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.159 </td>
-   <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.195 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 3 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.262 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.262 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.262 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 4 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.286 </td>
-   <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.081 </td>
-   <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.081 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 5 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.240 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.248 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.248 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 6 </td>
-   <td style="text-align:left;"> ARI </td>
-   <td style="text-align:right;"> 0.309 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.273 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.273 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 7 </td>
-   <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.186 </td>
-   <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.186 </td>
-   <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.186 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 8 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.184 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.184 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.184 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 9 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.263 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.270 </td>
-   <td style="text-align:left;"> MIN </td>
-   <td style="text-align:right;"> 0.278 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 10 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.273 </td>
-   <td style="text-align:left;"> OAK </td>
-   <td style="text-align:right;"> 0.327 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.273 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 11 </td>
-   <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.269 </td>
-   <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.269 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.188 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 12 </td>
-   <td style="text-align:left;"> CAR </td>
-   <td style="text-align:right;"> 0.317 </td>
-   <td style="text-align:left;"> CAR </td>
-   <td style="text-align:right;"> 0.317 </td>
-   <td style="text-align:left;"> CAR </td>
-   <td style="text-align:right;"> 0.317 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> 13 </td>
-   <td style="text-align:left;"> DEN </td>
-   <td style="text-align:right;"> 0.220 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.187 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.187 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;font-weight: bold;"> Mean </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.246 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.234 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.228 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;font-weight: bold;"> SD </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.059 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.070 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.064 </td>
-  </tr>
-</tbody>
-</table>
-
-
-# In developent.. 
-Need to come up with the way of solving the below equation.
-
-## Approach 4: 
-This is a linear optimization problem. Normally I could solve this quickly in 
-Excel using the built in solver. 
-
-Our optimization problem is the following 
-$$ \min_{x_{it}} \sum_i\sum_t p_{it}x_{it} \text{ s.t.} $$
-$$\text{Team constraint: } \sum_i x_i \leq 1 \\ \text{Week constraint: }x_t = 1 \forall t $$
-
-## Other considerations:   
-
-
-### Optimal picks weeks 3 onward. 
-1. There is a rebuy after weeks 1 and 2. I can begin my algorithms in week 3 
-and onward, and then take the remaining picks in weeks 1 & 2, given the crutch of 
-a rebuy. 
-
-
-```r
-teams <- c("", "")
-weeks <- c(1, 2, seq(total_weeks + 1, 18, 1))
-
-picks <- by_week(teams)
-picks2 <- by_prob(weeks, teams)
-picks3 <- opp_cost(weeks, teams)
-
-tbl <- left_join(picks, picks2, by="Week", suffix=c("_1", "_2"))
-tbl <- left_join(tbl, picks3, by="Week", suffix=c("", "_3"))
-names <- c("Week", rep(c("Team", "ProbWin"),3))
-names(tbl) <- names
-
-avg_1 <- mean(as.numeric(picks$`Pr(Win)`))
-avg_2 <- mean(as.numeric(picks2$`Pr(Win)`))
-avg_3 <- mean(as.numeric(picks3$ProbWin))
-avg_row <- data.frame("Mean", "", avg_1, "", avg_2, "", avg_3)
-names(avg_row) <- names(tbl)
-
-sd_1 <- sd(as.numeric(picks$`Pr(Win)`))
-sd_2 <- sd(as.numeric(picks2$`Pr(Win)`))
-sd_3 <- sd(as.numeric(picks3$ProbWin))
-sd_row <- data.frame("SD", "", sd_1, "", sd_2, "", sd_3)
-names(sd_row) <- names(tbl)
 
 tbl <- rbind(tbl, avg_row)
 tbl <- rbind(tbl, sd_row)
@@ -1006,145 +757,121 @@ kbl(tbl, digits=3) %>%
 <tbody>
   <tr>
    <td style="text-align:left;"> 3 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.262 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.262 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.262 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.155 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.155 </td>
+   <td style="text-align:left;"> NYJ </td>
+   <td style="text-align:right;"> 0.214 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 4 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.081 </td>
+   <td style="text-align:right;"> 0.124 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.081 </td>
+   <td style="text-align:right;"> 0.124 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.081 </td>
+   <td style="text-align:right;"> 0.124 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.240 </td>
+   <td style="text-align:right;"> 0.243 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.248 </td>
+   <td style="text-align:right;"> 0.256 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.248 </td>
+   <td style="text-align:right;"> 0.256 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 6 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.273 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.273 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.273 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.261 </td>
+   <td style="text-align:left;"> OAK </td>
+   <td style="text-align:right;"> 0.312 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.186 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.186 </td>
+   <td style="text-align:right;"> 0.173 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.178 </td>
+   <td style="text-align:right;"> 0.153 </td>
    <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.186 </td>
+   <td style="text-align:right;"> 0.173 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.184 </td>
+   <td style="text-align:right;"> 0.153 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.184 </td>
+   <td style="text-align:right;"> 0.153 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.184 </td>
+   <td style="text-align:right;"> 0.153 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.263 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.270 </td>
-   <td style="text-align:left;"> MIN </td>
-   <td style="text-align:right;"> 0.278 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.203 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.203 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.203 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 10 </td>
    <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.273 </td>
-   <td style="text-align:left;"> OAK </td>
-   <td style="text-align:right;"> 0.327 </td>
+   <td style="text-align:right;"> 0.292 </td>
    <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.273 </td>
+   <td style="text-align:right;"> 0.292 </td>
+   <td style="text-align:left;"> CAR </td>
+   <td style="text-align:right;"> 0.308 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 11 </td>
-   <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.269 </td>
-   <td style="text-align:left;"> DAL </td>
-   <td style="text-align:right;"> 0.269 </td>
+   <td style="text-align:left;"> IND </td>
+   <td style="text-align:right;"> 0.292 </td>
+   <td style="text-align:left;"> IND </td>
+   <td style="text-align:right;"> 0.292 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.188 </td>
+   <td style="text-align:right;"> 0.190 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 12 </td>
-   <td style="text-align:left;"> CAR </td>
-   <td style="text-align:right;"> 0.317 </td>
-   <td style="text-align:left;"> CAR </td>
-   <td style="text-align:right;"> 0.317 </td>
-   <td style="text-align:left;"> CAR </td>
-   <td style="text-align:right;"> 0.317 </td>
+   <td style="text-align:left;"> OAK </td>
+   <td style="text-align:right;"> 0.325 </td>
+   <td style="text-align:left;"> MIN </td>
+   <td style="text-align:right;"> 0.330 </td>
+   <td style="text-align:left;"> OAK </td>
+   <td style="text-align:right;"> 0.325 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 13 </td>
    <td style="text-align:left;"> DEN </td>
-   <td style="text-align:right;"> 0.220 </td>
+   <td style="text-align:right;"> 0.235 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.187 </td>
+   <td style="text-align:right;"> 0.141 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.187 </td>
+   <td style="text-align:right;"> 0.141 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.234 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.223 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.236 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.219 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.225 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.207 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.064 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.066 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.072 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.078 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.067 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.065 </td>
   </tr>
 </tbody>
 </table>
 
-```r
-ggplot() + 
-  geom_point(data = subset(df, week>2 & week < 14), aes(x=week, y=p_lose), alpha=0.2, color="gray") + 
-  geom_point(data = data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
-  scale_color_viridis_d() + 
-  coord_flip() + 
-  xlim(3, 12) + 
-  labs(title = "Selection plot for each approach - Week 3+", 
-       x = "Week Number", 
-       y = "Win Probability")
-```
-
-![](README_figs/README-unnamed-chunk-11-1.png)<!-- -->
-
-Missing from the respective lists are: 
-
-1. PIT and ATL
-2. CHI and ATL
-3. DAL and ATL  
-Our updated averages become: 0.236, 0.237, and 0.230. 
-
-Surprisingly a weak improvement in each approach! Note: the analysis was done 
-ad-hoc in an excel sheet. I didn't feel like coding this one up to check which 
-teams are missing from each week and what the best picks otherwise are. 
