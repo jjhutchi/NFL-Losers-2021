@@ -8,16 +8,13 @@ output:
 ---
 
 
-```{r, echo = FALSE}
-knitr::opts_chunk$set(
-  fig.path = "README_figs/README-"
-)
-```
+
 
 ## Make picks based on oppertunity cost
 
 Data pre-processing using `data.table`
-```{r, warning=F}
+
+```r
 pacman::p_load(data.table, ggplot2, ggalt, dplyr, knitr, kableExtra)
 
 # Data preprocessing ----------------------------------------------------------
@@ -41,7 +38,8 @@ dt <- dt[week %in% time_period]
 ```
 
 ## algorithm to make the best pick
-```{r}
+
+```r
 dt <- dt[order(week, p_win)]
 
 past_weeks <- c(1)
@@ -62,7 +60,8 @@ past_picks <- append(past_picks, pick$pick)
 The above code will make the pick on a one-off basis. Next, we need to make the 
 code so that it will fill in all the weekly picks. 
 
-```{r}
+
+```r
 past_weeks <- c(1)
 past_picks <- c("DAL")
 
@@ -85,7 +84,6 @@ for(i in start_week:total_weeks){
 # make into readable table
 picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
 picks <- merge(picks, dt, on = week)
-
 ```
 
 The above code systematically prints out the best pick per week using the opportunity 
@@ -124,7 +122,8 @@ solutions to the equation $\sum_{i=0}^5\binom{5}{i}$. We can also begin at $i=1$
 and stop at $i=5$ in this case to avoid the situations which bring us back to 
 our initial solution.
 
-```{r}
+
+```r
 number2binary <- function(number, noBits) {
        binary_vector <- rev(as.numeric(intToBits(number)))
        if(missing(noBits)) {
@@ -142,20 +141,67 @@ for(i in 1:end - 1){
 }
 ```
 
+```
+## [1] 0 0 0 0 0
+## [1] 0 0 0 0 1
+## [1] 0 0 0 1 0
+## [1] 0 0 0 1 1
+## [1] 0 0 1 0 0
+## [1] 0 0 1 0 1
+## [1] 0 0 1 1 0
+## [1] 0 0 1 1 1
+## [1] 0 1 0 0 0
+## [1] 0 1 0 0 1
+## [1] 0 1 0 1 0
+## [1] 0 1 0 1 1
+## [1] 0 1 1 0 0
+## [1] 0 1 1 0 1
+## [1] 0 1 1 1 0
+## [1] 0 1 1 1 1
+## [1] 1 0 0 0 0
+## [1] 1 0 0 0 1
+## [1] 1 0 0 1 0
+## [1] 1 0 0 1 1
+## [1] 1 0 1 0 0
+## [1] 1 0 1 0 1
+## [1] 1 0 1 1 0
+## [1] 1 0 1 1 1
+## [1] 1 1 0 0 0
+## [1] 1 1 0 0 1
+## [1] 1 1 0 1 0
+## [1] 1 1 0 1 1
+## [1] 1 1 1 0 0
+## [1] 1 1 1 0 1
+## [1] 1 1 1 1 0
+## [1] 1 1 1 1 1
+```
+
 We can see that by converting a binary string to logical, we are able to subset 
 rows from our data.table of picks. Now, we have a method to systematically check 
 each result of our algorithm if we put teams back into the pool. 
 
-```{r}
+
+```r
 test_filter <- c(rep(c(1, 0), 5), 1)
 test_filter <- as.logical(test_filter)
 
 picks[test_filter] # should keep every other row.
 ```
 
+```
+##    week loser     p_win
+## 1:    3   NYJ 0.2135926
+## 2:    5   MIA 0.2563329
+## 3:    7   CHI 0.1731908
+## 4:    9   ATL 0.2026499
+## 5:   11   DET 0.1898022
+## 6:   13   JAX 0.1413606
+```
+
 ## Looking for better solutions
 
-```{r}
+
+```r
 cases <- 2^(total_weeks-2)
 
 obj <- sum(picks$p_win) # total sum of inital solution
@@ -200,13 +246,18 @@ for(i in 1:cases){
   }
   
 }
+```
 
+```
+## [1] "Better solution found, case:  32"
+## [1] "Better solution found, case:  1056"
 ```
 
 ## Compare the better results
 
 Read in all the data sets
-```{r}
+
+```r
 fnames <- dir("cases/", pattern = "csv")
 
 read_data <- function(z){
@@ -225,7 +276,8 @@ data <- rbind(data, op)
 
 ## Compare with plots
 
-```{r}
+
+```r
 ggplot2::ggplot(data, aes(x=week, y=p_win, color = file, shape = file)) + 
   geom_line(aes(group = week), color="#e3e2e1", size = 2) +
   geom_point(size = 3) + 
@@ -235,10 +287,31 @@ ggplot2::ggplot(data, aes(x=week, y=p_win, color = file, shape = file)) +
   labs(title = "Alternative approaces to the optimal picks", 
        x = "Week Number", 
        y = "Win Probability")
+```
 
+![](README_figs/README-unnamed-chunk-9-1.png)<!-- -->
+
+```r
 tbl <- dcast(data, week ~ file, value.var = "p_win")
 tbl
+```
 
+```
+##     week cases/trial_1056.csv cases/trial_32.csv    inital
+##  1:    3            0.2135926          0.2135926 0.2135926
+##  2:    4            0.1242331          0.1242331 0.3089509
+##  3:    5            0.2563329          0.2563329 0.2563329
+##  4:    6            0.3120104          0.3120104 0.2002378
+##  5:    7            0.1731908          0.1731908 0.1731908
+##  6:    8            0.1525813          0.1525813 0.1525813
+##  7:    9            0.2026499          0.2026499 0.2026499
+##  8:   10            0.2322563          0.3081115 0.3081115
+##  9:   11            0.2497751          0.1898022 0.1898022
+## 10:   12            0.3303418          0.3303418 0.3303418
+## 11:   13            0.1413606          0.1413606 0.1413606
+```
+
+```r
 first <- data[file == "inital"]
 second <- data[file == "cases/trial_32.csv"]
 third <- data[file == "cases/trial_1056.csv"]
@@ -270,6 +343,145 @@ kbl(tbl, digits=3) %>%
   row_spec(total_weeks - 1, bold=T) %>%
   row_spec(total_weeks, bold=T)
 ```
+
+<table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+ <thead>
+<tr>
+<th style="empty-cells: hide;" colspan="1"></th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Inital</div></th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Trial 32</div></th>
+<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Trial 1056</div></th>
+</tr>
+  <tr>
+   <th style="text-align:left;"> Week </th>
+   <th style="text-align:left;"> Team </th>
+   <th style="text-align:right;"> ProbWin </th>
+   <th style="text-align:left;"> Team </th>
+   <th style="text-align:right;"> ProbWin </th>
+   <th style="text-align:left;"> Team </th>
+   <th style="text-align:right;"> ProbWin </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> 3 </td>
+   <td style="text-align:left;"> NYJ </td>
+   <td style="text-align:right;"> 0.214 </td>
+   <td style="text-align:left;"> NYJ </td>
+   <td style="text-align:right;"> 0.214 </td>
+   <td style="text-align:left;"> NYJ </td>
+   <td style="text-align:right;"> 0.214 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 4 </td>
+   <td style="text-align:left;"> OAK </td>
+   <td style="text-align:right;"> 0.309 </td>
+   <td style="text-align:left;"> HOU </td>
+   <td style="text-align:right;"> 0.124 </td>
+   <td style="text-align:left;"> HOU </td>
+   <td style="text-align:right;"> 0.124 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 5 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.256 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.256 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.256 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 6 </td>
+   <td style="text-align:left;"> HOU </td>
+   <td style="text-align:right;"> 0.200 </td>
+   <td style="text-align:left;"> OAK </td>
+   <td style="text-align:right;"> 0.312 </td>
+   <td style="text-align:left;"> OAK </td>
+   <td style="text-align:right;"> 0.312 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 7 </td>
+   <td style="text-align:left;"> CHI </td>
+   <td style="text-align:right;"> 0.173 </td>
+   <td style="text-align:left;"> CHI </td>
+   <td style="text-align:right;"> 0.173 </td>
+   <td style="text-align:left;"> CHI </td>
+   <td style="text-align:right;"> 0.173 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 8 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.153 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.153 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.153 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 9 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.203 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.203 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.203 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 10 </td>
+   <td style="text-align:left;"> CAR </td>
+   <td style="text-align:right;"> 0.308 </td>
+   <td style="text-align:left;"> CAR </td>
+   <td style="text-align:right;"> 0.308 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.232 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 11 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.190 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.190 </td>
+   <td style="text-align:left;"> DAL </td>
+   <td style="text-align:right;"> 0.250 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 12 </td>
+   <td style="text-align:left;"> MIN </td>
+   <td style="text-align:right;"> 0.330 </td>
+   <td style="text-align:left;"> MIN </td>
+   <td style="text-align:right;"> 0.330 </td>
+   <td style="text-align:left;"> MIN </td>
+   <td style="text-align:right;"> 0.330 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> 13 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.141 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.141 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.141 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> Mean </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.225 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.219 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.217 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> SD </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.066 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.073 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.067 </td>
+  </tr>
+</tbody>
+</table>
 
 As we can see, the latest trial solution found a lower total and had a similar 
 standard deviation. These appear to be changes in the timing of Houston and Oakland.
