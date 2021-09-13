@@ -87,63 +87,80 @@ kable(picks, digits = 2) %>%
 
 obj <- sum(picks$ProbWin)
 
-# keep only a sample of picks
-tmp <- sample_n(picks, 3)
-j <- length(tmp)
 
-weeks <- tmp$Week
-teams <- tmp$Team
+# Long-winded method of trying other picks
 
-# fill in the remainder of picks
-picks <- list()
 
-most_constrained <- function(data, weeks, teams){
-  # select the team & week pair with the greatest opportunity cost
-  tmp <- data %>% 
-    filter(
-      !loser %in% teams, 
-      !week %in% weeks
-    ) %>%
-    group_by(week) %>%
-    arrange(week, p_win) %>% 
-    mutate(diff = lead(p_win, 1) - p_win) %>%
-    slice(1L) %>%
-    ungroup() %>%
-    mutate(rank = rank(-diff)) %>%
-    filter(rank == 1) %>%
-    select(week, loser, p_win)
+N = 10000
+results <- c()
+for(i in 1:N){
+
+  if(i %% 100 == 0){print(i)} # for progress
+  # keep only a sample of picks
+  tmp <- sample_n(picks, 3)
+  j <- length(tmp)
   
-  return(tmp)
-}
-
-while(j <= total_weeks){
-  print(j)
-  if(j <= length(teams)){
-    # remove already picked weeks and teams
-    pick <- df %>% 
-      filter(week == j) %>%
-      filter(loser == teams[j])
-  } else {
-    pick <- most_constrained(df, weeks, teams)
-    teams <- append(teams, pick$loser)
-    weeks <- append(weeks, pick$week)
+  weeks <- tmp$Week
+  teams <- tmp$Team
+  
+  # fill in the remainder of picks
+  picks <- list()
+  
+  most_constrained <- function(data, weeks, teams){
+    # select the team & week pair with the greatest opportunity cost
+    tmp <- data %>% 
+      filter(
+        !loser %in% teams, 
+        !week %in% weeks
+      ) %>%
+      group_by(week) %>%
+      arrange(week, p_win) %>% 
+      mutate(diff = lead(p_win, 1) - p_win) %>%
+      slice(1L) %>%
+      ungroup() %>%
+      mutate(rank = rank(-diff)) %>%
+      filter(rank == 1) %>%
+      select(week, loser, p_win)
+    
+    return(tmp)
   }
   
-  picks[[j]] <- pick
-  j = j + 1 
+  while(j <= total_weeks){
+
+    if(j <= length(teams)){
+      # remove already picked weeks and teams
+      pick <- df %>% 
+        filter(week == j) %>%
+        filter(loser == teams[j])
+    } else {
+      pick <- most_constrained(df, weeks, teams)
+      teams <- append(teams, pick$loser)
+      weeks <- append(weeks, pick$week)
+    }
+    
+    picks[[j]] <- pick
+    j = j + 1 
+    
+  }
   
+  picks <- do.call(rbind.data.frame, picks)
+  picks <- arrange(picks, week)
+  
+  labs <- c("Week", "Team", "ProbWin")
+  names(picks) <- labs
+  
+  picks <- rbind(picks, tmp)
+  picks <- arrange(picks, Week)
+  
+  test <- sum(picks$ProbWin)
+  results <- append(results, test)
+
+  better_picks <-  list()
+  if(test < obj){
+    print(paste(test < obj, round(test, 2), round(obj, 2)))
+    better_picks <- append(better_picks, picks)
+    obj <- sum(better_picks$ProbWin)
+  }
 }
 
-picks <- do.call(rbind.data.frame, picks)
-picks <- arrange(picks, week)
-
-labs <- c("Week", "Team", "ProbWin")
-names(picks) <- labs
-
-picks <- rbind(picks, tmp)
-picks <- arrange(picks, Week)
-
-test <- sum(picks$ProbWin)
-
-print(paste(test, obj, test<obj))
 

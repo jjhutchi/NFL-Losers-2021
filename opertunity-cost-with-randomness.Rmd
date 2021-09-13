@@ -1,0 +1,266 @@
+---
+title: "better_analysis"
+author: "Jordan Hutchings"
+date: "12/09/2021"
+output: html_document
+---
+
+## Make picks based on oppertunity cost
+
+Data pre-processing using `data.table`
+```{r, warning=F}
+pacman::p_load(data.table, ggplot2, ggalt, dplyr, knitr, kableExtra)
+
+# Data preprocessing ----------------------------------------------------------
+path <- "https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv"
+week1 <- as.Date("2021-09-09")
+
+dt <- fread(path)
+
+# calculate week, get proj loser and prob of loss. 
+total_weeks <- 13
+time_period <- seq(3, total_weeks, 1)
+
+dt[, loser:=ifelse(qbelo_prob1 > qbelo_prob2, team2, team1)]
+dt[, p_win:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)]
+dt[, week:=floor(as.numeric(difftime(date, week1, units="days")) / 7) + 1]
+
+cols <- c("week", "loser", "p_win")
+dt <- dt[, .(week, loser, p_win)]
+
+dt <- dt[week %in% time_period]
+```
+
+## algorithm to make the best pick
+```{r}
+dt <- dt[order(week, p_win)]
+
+past_weeks <- c(1)
+past_picks <- c("DAL")
+
+# pick the lowest win probability per week with the highest 
+# opportunity cost if not picked.
+tmp <- dt[!week %in% past_weeks & !loser %in% past_picks, ]
+tmp[, oc:=shift(p_win, 1, type="lead") - p_win, by = week]
+tmp <- tmp[, .SD[1], week]
+tmp <- tmp[order(-oc)]
+pick <- tmp[, .SD[1]]
+
+past_weeks <- append(past_weeks, pick$week)
+past_picks <- append(past_picks, pick$pick)
+```
+
+The above code will make the pick on a one-off basis. Next, we need to make the 
+code so that it will fill in all the weekly picks. 
+
+```{r}
+past_weeks <- c(1)
+past_picks <- c("DAL")
+
+start_week <- 3
+total_weeks <- 13
+
+for(i in start_week:total_weeks){
+  
+  tmp <- dt[!week %in% past_weeks & !loser %in% past_picks, ]
+  tmp[, oc:=shift(p_win, 1, type="lead") - p_win, by = week]
+  tmp <- tmp[, .SD[1], week]
+  tmp <- tmp[order(-oc)]
+  pick <- tmp[, .SD[1]]
+  
+  past_weeks <- append(past_weeks, pick$week)
+  past_picks <- append(past_picks, pick$loser)
+  
+}
+
+# make into readable table
+picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
+picks <- merge(picks, dt, on = week)
+
+```
+
+The above code systematically prints out the best pick per week using the opportunity 
+cost of the next best team in a given week. 
+
+There is some concern that this hits a local but not global minimum total win 
+probability. In order to test this, I will remove weekly picks, adding them 
+back into the pool of teams that can be selected, and will compute the best 
+picks with the teams now available for selection. Ideally, this will cover 
+slight modifications to the possible picks. We will rank the picks based on the 
+total probability.
+
+I make a vector called `drop` which will contain given weeks, these weeks and 
+their corresponding teams will be dropped from the `past_week` and `past_picks` 
+vectors. Then we will fill in those weeks with teams from the remaining pool 
+of possible using the opportunity cost approach. 
+
+We can calculate the total number of possible drops we can make in $N$ weeks 
+as the following: 
+
+$$ \sum_{i=0}^N\binom{N}{i} = 2^N $$
+
+There are some obvious cases we can discard, i.e. when $i=0$ or $i=14$ we will 
+reach our initial solution, therefore, we actually have
+$$ \sum_{i=1}^{N-1}\binom{N}{i} = 2^N - 2 $$ cases to check.
+
+We can make use of the binomial nature here in determining whether to drop weeks 
+or not in our loop. 
+
+For example, we can count to the number of choices using binary, and use the 
+binary representation to filter out rows in our initial dataset.
+
+Suppose there are 5 weeks, $2^5 = 32$ therefore, there are $32$ cases to check. 
+Each of the 32 binary representations will cover all the permutations of possible 
+solutions to the equation $\sum_{i=0}^5\binom{5}{i}$. We can also begin at $i=1$ 
+and stop at $i=5$ in this case to avoid the situations which bring us back to 
+our initial solution.
+
+```{r}
+number2binary <- function(number, noBits) {
+       binary_vector <- rev(as.numeric(intToBits(number)))
+       if(missing(noBits)) {
+          return(binary_vector)
+       } else {
+          binary_vector[-(1:(length(binary_vector) - noBits))]
+       }
+}
+
+weeks <- 5
+end <- 2^weeks
+
+for(i in 1:end - 1){
+  print(number2binary(i, weeks))
+}
+```
+
+We can see that by converting a binary string to logical, we are able to subset 
+rows from our data.table of picks. Now, we have a method to systematically check 
+each result of our algorithm if we put teams back into the pool. 
+
+```{r}
+test_filter <- c(rep(c(1, 0), 5), 1)
+test_filter <- as.logical(test_filter)
+
+picks[test_filter] # should keep every other row.
+```
+
+## Looking for better solutions
+
+```{r}
+cases <- 2^(total_weeks-2)
+
+obj <- sum(picks$p_win) # total sum of inital solution
+
+op <- picks
+
+for(i in 1:cases){
+  drop <- as.logical(number2binary(i, total_weeks-2))
+  dt_d <- picks[drop]
+  
+  past_weeks <- c(dt_d$week)
+  past_picks <- c(dt_d$loser)
+  
+  start <- length(past_weeks)
+  end <- total_weeks-2
+  
+  for(j in start:end){
+  
+    tmp <- dt[!week %in% past_weeks & !loser %in% past_picks, ]
+    tmp[, oc:=shift(p_win, 1, type="lead") - p_win, by = week]
+    tmp <- tmp[, .SD[1], week]
+    tmp <- tmp[order(-oc)]
+    pick <- tmp[, .SD[1]]
+    
+    past_weeks <- append(past_weeks, pick$week)
+    past_picks <- append(past_picks, pick$loser)
+    
+  }
+  
+  # make into readable table
+  picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
+  picks <- merge(picks, dt, on = week)
+  
+  # get total probability from new case
+  perf <- sum(picks$p_win)
+  
+  # save better lineups to separate folder 
+  if(perf < obj){
+    obj <- perf
+    print(paste("Better solution found, case: ", i))
+    fwrite(picks, file = paste0("cases/trial_", i, ".csv"))
+  }
+  
+}
+
+```
+
+## Compare the better results
+
+Read in all the data sets
+```{r}
+fnames <- dir("cases/", pattern = "csv")
+
+read_data <- function(z){
+  dat <- fread(z)
+  dat$file <- z
+  return(dat)
+}
+
+datalist <- lapply(paste0("cases/", fnames), read_data)
+
+data <- rbindlist(datalist, use.names = TRUE)
+
+op$file <- "inital"
+data <- rbind(data, op)
+```
+
+## Compare with plots
+
+```{r}
+ggplot2::ggplot(data, aes(x=week, y=p_win, color = file, shape = file)) + 
+  geom_line(aes(group = week), color="#e3e2e1", size = 2) +
+  geom_point(size = 3) + 
+  xlim(3, 13) + 
+  coord_flip() + 
+  scale_color_viridis_d() + 
+  labs(title = "Alternative approaces to the optimal picks", 
+       x = "Week Number", 
+       y = "Win Probability")
+
+tbl <- dcast(data, week ~ file, value.var = "p_win")
+tbl
+
+first <- data[file == "inital"]
+second <- data[file == "cases/trial_32.csv"]
+third <- data[file == "cases/trial_1056.csv"]
+
+tbl <- dplyr::left_join(first, second, by="week", suffix=c("_1", "_2"))
+tbl <- dplyr::left_join(tbl, third, by="week", suffix=c("", "_3"))
+tbl <- select(tbl, -c("file_1", "file_2", "file"))
+names <- c("Week", rep(c("Team", "ProbWin"),3))
+names(tbl) <- names
+
+avg_1 <- mean(as.numeric(first$p_win))
+avg_2 <- mean(as.numeric(second$p_win))
+avg_3 <- mean(as.numeric(third$p_win))
+avg_row <- data.frame("Mean", "", avg_1, "", avg_2, "", avg_3)
+names(avg_row) <- names(tbl)
+
+sd_1 <- sd(as.numeric(first$p_win))
+sd_2 <- sd(as.numeric(second$p_win))
+sd_3 <- sd(as.numeric(third$p_win))
+sd_row <- data.frame("SD", "", sd_1, "", sd_2, "", sd_3)
+names(sd_row) <- names(tbl)
+
+tbl <- rbind(tbl, avg_row)
+tbl <- rbind(tbl, sd_row)
+
+kbl(tbl, digits=3) %>%
+  kable_classic(full_width=F) %>%
+  add_header_above(c(" " = 1, "Inital" = 2, "Trial 32" = 2, "Trial 1056" = 2)) %>%
+  row_spec(total_weeks - 1, bold=T) %>%
+  row_spec(total_weeks, bold=T)
+```
+
+As we can see, the latest trial solution found a lower total and had a similar 
+standard deviation. These appear to be changes in the timing of Houston and Oakland.
