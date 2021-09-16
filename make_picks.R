@@ -1,30 +1,35 @@
 # Data pre-processing -------------------
 
-# Model Inputs 
-total_weeks <- 10
-time_period <- c(3:total_weeks)
-past_picks <- c("DAL")
-past_weeks <- c(1)
-
 pacman::p_load(data.table, ggplot2, ggalt, dplyr, knitr, kableExtra)
 
+# Model Inputs 
 path <- "https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv"
 week1 <- as.Date("2021-09-09")
+total_weeks <- 10
+start_week <- 3
+time_period <- c(start_week:total_weeks)
+past_picks <- c("CHI")
+past_weeks <- c(1)
 
-dt <- fread(path)
+read_data <- function(path){
+  dt <- fread(path)
+  
+  # calculate week, get proj loser and prob of loss. 
+  
+  dt[, loser:=ifelse(qbelo_prob1 > qbelo_prob2, team2, team1)]
+  dt[, p_win:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)]
+  dt[, week:=floor(as.numeric(difftime(date, week1, units="days")) / 7) + 1]
+  
+  cols <- c("week", "loser", "p_win")
+  dt <- dt[, .(week, loser, p_win)]
+  
+  dt <- dt[week %in% time_period]
+  
+  dt <- dt[!loser %in% past_picks]
+  
+  return(dt)
+}
 
-# calculate week, get proj loser and prob of loss. 
-
-dt[, loser:=ifelse(qbelo_prob1 > qbelo_prob2, team2, team1)]
-dt[, p_win:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)]
-dt[, week:=floor(as.numeric(difftime(date, week1, units="days")) / 7) + 1]
-
-cols <- c("week", "loser", "p_win")
-dt <- dt[, .(week, loser, p_win)]
-
-dt <- dt[week %in% time_period]
-
-dt <- dt[!loser %in% past_picks]
 
 # Approach functions ----------------------
 join_picks <- function(past_weeks, past_picks){
@@ -93,10 +98,33 @@ by_oc <- function(past_picks, past_weeks, start_week = 3, total_weeks = 13){
   return(picks)
 }
 
+optimal_rebuy_picks <- function(dt, picks){
+  
+  dt <- fread(path)
+  dt[, loser:=ifelse(qbelo_prob1 > qbelo_prob2, team2, team1)]
+  dt[, p_win:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)]
+  dt[, week:=floor(as.numeric(difftime(date, week1, units="days")) / 7) + 1]
+  
+  cols <- c("week", "loser", "p_win")
+  dt <- dt[, .(week, loser, p_win)]
+  
+  dt <- dt[!loser %in% past_picks]
+  
+  pick <- dt[!loser %in% picks1$loser]
+  pick <- pick[order(week, p_win)]
+  pick <- pick[, .SD[1], week][1:2]
+  print(pick)
+  
+  return(pick)
+
+}
+
 # Calculate picks -------------------------
+dt <- read_data(path)
 picks1 <- by_week(past_picks, past_weeks)
 picks2 <- by_prob(past_picks, past_weeks)
 picks3 <- by_oc(past_picks, past_weeks)
+rebuy_picks <- optimal_rebuy_picks(dt, picks1)
 
 # Descriptive Statistics ------------------
 
@@ -134,6 +162,7 @@ data <- rbind(picks1, picks2, picks3)
 
 ggplot() + 
   geom_point(data = dt, aes(x = week, y = p_win), 
+             size = 3,
              color = "grey", 
              alpha = 0.4) +
   geom_point(data = data,

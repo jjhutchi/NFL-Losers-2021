@@ -194,8 +194,8 @@ kable(picks1, digits = 2) %>%
   </tr>
   <tr>
    <td style="text-align:right;"> 12 </td>
-   <td style="text-align:left;"> OAK </td>
-   <td style="text-align:right;"> 0.32 </td>
+   <td style="text-align:left;"> MIN </td>
+   <td style="text-align:right;"> 0.33 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 13 </td>
@@ -274,8 +274,8 @@ kable(picks2, digits = 2) %>%
   </tr>
   <tr>
    <td style="text-align:right;"> 6 </td>
-   <td style="text-align:left;"> OAK </td>
-   <td style="text-align:right;"> 0.31 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.34 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 7 </td>
@@ -426,8 +426,8 @@ kable(picks3, digits = 2) %>%
   </tr>
   <tr>
    <td style="text-align:right;"> 12 </td>
-   <td style="text-align:left;"> OAK </td>
-   <td style="text-align:right;"> 0.32 </td>
+   <td style="text-align:left;"> MIN </td>
+   <td style="text-align:right;"> 0.33 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 13 </td>
@@ -786,8 +786,8 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:left;"> 6 </td>
    <td style="text-align:left;"> JAX </td>
    <td style="text-align:right;"> 0.261 </td>
-   <td style="text-align:left;"> OAK </td>
-   <td style="text-align:right;"> 0.312 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.343 </td>
    <td style="text-align:left;"> WSH </td>
    <td style="text-align:right;"> 0.186 </td>
   </tr>
@@ -838,12 +838,12 @@ kbl(tbl, digits=3) %>%
   </tr>
   <tr>
    <td style="text-align:left;"> 12 </td>
-   <td style="text-align:left;"> OAK </td>
-   <td style="text-align:right;"> 0.325 </td>
    <td style="text-align:left;"> MIN </td>
    <td style="text-align:right;"> 0.330 </td>
-   <td style="text-align:left;"> OAK </td>
-   <td style="text-align:right;"> 0.325 </td>
+   <td style="text-align:left;"> MIN </td>
+   <td style="text-align:right;"> 0.330 </td>
+   <td style="text-align:left;"> MIN </td>
+   <td style="text-align:right;"> 0.330 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 13 </td>
@@ -857,20 +857,20 @@ kbl(tbl, digits=3) %>%
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.223 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.224 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.219 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.222 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.207 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.067 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.082 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.066 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.078 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.065 </td>
   </tr>
 </tbody>
 </table>

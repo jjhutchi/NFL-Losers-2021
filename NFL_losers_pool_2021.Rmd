@@ -468,3 +468,35 @@ kbl(tbl, digits=3) %>%
   row_spec(total_weeks, bold=T)
 ```
 
+## What is the difference between the QB adjusted rating and the normal ELO rating?
+
+We can simply plot each teams win probability in both cases, as a dumbbell chart. 
+
+```{r}
+# data preprocessing
+dt <- fread(path)
+
+# calculate week, get proj loser and prob of loss. 
+total_weeks <- 13
+time_period <- seq(3, total_weeks, 1)
+
+dt[, week:=floor(as.numeric(difftime(date, week1, units="days")) / 7) + 1]
+
+t1 <- dt[, .(team1, elo_prob1, qbelo_prob1, week)]
+t2 <- dt[, .(team2, elo_prob2, qbelo_prob2, week)]
+
+names <- c("Team", "elo_prob", "qbelo_prob", "week")
+names(t1) <- names
+names(t2) <- names
+
+data <- rbind(t1, t2)
+
+# plot data 
+ggplot(data, aes(y=week, x=elo_prob, xend=qbelo_prob)) +
+  geom_dumbbell(size=1, color="#e3e2e1",
+                colour_x = "#5b8124", colour_xend = "#bad744") + 
+  labs(title = "Comparing ELO and QBELO win probabilities")
+  facet_wrap(.~Team)
+
+```
+Pretty crowded, look to subsetting the data, or other plots. Kernel density plot?
