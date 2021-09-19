@@ -193,6 +193,13 @@ the opportunity cost in one week is worth the gains across multiple weeks.
 This is done below in Approach 4. 
 
 ```{r}
+join_picks <- function(past_weeks, past_picks){
+  picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
+  picks <- merge(picks, dt, on = week)
+  
+  return(picks)
+}
+
 by_oc <- function(past_picks, past_weeks, start_week = 3, total_weeks = 13, beta = 1){
   
   for(i in start_week:total_weeks){
