@@ -8,11 +8,11 @@ week1 <- as.Date("2021-09-09")
 total_weeks <- 10
 start_week <- 3
 time_period <- c(start_week:total_weeks)
-past_picks <- c("CHI")
+past_picks <- c("DAL")
 past_weeks <- c(1)
 
 read_data <- function(path){
-  dt <- fread(path)
+  dt <- data.table::fread(path)
   
   # calculate week, get proj loser and prob of loss. 
   
@@ -175,3 +175,5 @@ ggplot() +
        y = "Win %", 
        x = "Week Number") + 
   coord_flip()
+
+# tidy up environment

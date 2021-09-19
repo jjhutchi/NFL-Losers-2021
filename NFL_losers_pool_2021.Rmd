@@ -193,10 +193,7 @@ the opportunity cost in one week is worth the gains across multiple weeks.
 This is done below in Approach 4. 
 
 ```{r}
-by_oc <- function(past_picks, past_weeks){
-
-  start_week <- 3
-  total_weeks <- 13
+by_oc <- function(past_picks, past_weeks, start_week = 3, total_weeks = 13, beta = 1){
   
   for(i in start_week:total_weeks){
     
@@ -204,6 +201,7 @@ by_oc <- function(past_picks, past_weeks){
     pick <- pick[!week %in% past_weeks & !loser %in% past_picks, ]
     pick <- pick[order(week, p_win)]
     pick[, oc:= shift(p_win, 1, type="lead") - p_win, by = week]
+    pick[, oc:= oc * beta^(week - start_week)]
     pick <- pick[, .SD[1], week]
     pick <- pick[order(-oc)]
     pick <- pick[, .SD[1]]
@@ -213,12 +211,9 @@ by_oc <- function(past_picks, past_weeks){
     
   }
   
-  # make into readable table
-  picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
-  picks <- merge(picks, dt, on = week)
+  picks <- join_picks(past_weeks, past_picks)
   
   return(picks)
-  
 }
 
 past_weeks <- c(1)
@@ -500,3 +495,109 @@ ggplot(data, aes(y=week, x=elo_prob, xend=qbelo_prob)) +
 
 ```
 Pretty crowded, look to subsetting the data, or other plots. Kernel density plot?
+
+## Discounting
+Can also look into discounting the differences of future weeks. 
+
+
+## Simulations
+We can move to comparing different models by simulating the season based on 
+binomial probabilities. We can estimate for a given set of probabilities 
+the percentage of times a set of picks reaches a given week. 
+
+```{r}
+# simulations ----------------------------------------
+sim <- function(teams){
+  week <- 0 # index at zero. If win, move past week 1. 
+  
+  for(p in teams$ProbWin){
+    rng <- runif(1, 0, 1)
+    
+    # simulate outcome
+    if(p < rng){
+      # win, move to next week
+      week <- week + 1
+    } else{
+      # lose, leave loop and return week
+      return(week)
+    }
+  }
+  # in case win each week
+  return(week)
+}
+
+get_proportion <- function(outcome){
+  setDT(outcome)[order(-week)][, .(prop=.N / N), by=.(week)][, cumprob:=cumsum(prop)]
+}
+
+call_sim <- function(teams, N, lab){
+  results <- list()
+  for(i in 1:N){
+    results[i] <- sim(teams)
+  }
+  results <- do.call(rbind.data.frame, results)
+  names(results) <- c("week")
+  
+  results <- get_proportion(results)
+  results$model <- lab
+  results$week <- results$week + start_week
+  results
+}
+
+N <- 100000
+start_week <- 3
+opp_cost <- call_sim(picks3, N, "Oppertunity Cost")
+week <- call_sim(picks2, N, "Lowest per week")
+prob <- call_sim(picks1, N, "Lowest probability overall")
+
+# Compare models
+data <- rbind(opp_cost, week, prob)
+
+ggplot(data, aes(x = week, y = cumprob, color = model)) + 
+  geom_line() + 
+  geom_point(alpha = 0.8) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(min(data$week), max(data$week) + 1)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) + 
+  labs(title = "Cumulative probability of reaching a given week",
+       x = "Week number", 
+       y = "Pr(X < x)") + 
+  theme_classic(10)
+```
+
+From the above plot, there is not a significant difference between the in terms of 
+probabilities of lasting to a given week. I suppose this is understandable given 
+how similar the weekly averages are. 
+
+If anything, this shows that it is best to pick a lower probability in the earlier 
+weeks, as the Opportunity Cost model is First Order Stochastically Dominated by 
+both models until Week 7.From there, it appears the Opportunity Cost model FOSD 
+the other two models. 
+
+To combat this issue, I will experiment with different discount rates on future 
+games. This should place higher weight on picking teams more likely to lose in 
+the earlier weeks. We see below that future discounting on the opportunity 
+cost discounting is preferred, with $\beta \in \{0.7, 0.8, 0.9\}$ all outperforming 
+a $\beta = 1 $ until Week 7.
+
+```{r}
+op_cost_9 <- by_oc(past_picks, past_weeks, beta = 0.9)
+op_cost_8 <- by_oc(past_picks, past_weeks, beta = 0.8)
+op_cost_7 <- by_oc(past_picks, past_weeks, beta = 0.7)
+
+oc9 <- call_sim(op_cost_9, N, "Oppertunity Cost, Beta = 0.9")
+oc8 <- call_sim(op_cost_8, N, "Oppertunity Cost, Beta = 0.8")
+oc7 <- call_sim(op_cost_7, N, "Oppertunity Cost, Beta = 0.7")
+
+# Compare models
+data <- rbind(opp_cost, oc9, oc8, oc7)
+
+ggplot(data, aes(x = week, y = cumprob, color = model)) + 
+  geom_line() + 
+  geom_point(alpha = 0.8) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(min(data$week), max(data$week) + 1)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) + 
+  labs(title = "Cumulative probability of reaching a given week",
+       x = "Week number", 
+       y = "Pr(X < x)") + 
+  theme_classic(10)
+```

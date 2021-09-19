@@ -150,7 +150,7 @@ kable(picks1, digits = 2) %>%
   <tr>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.16 </td>
+   <td style="text-align:right;"> 0.18 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 4 </td>
@@ -260,7 +260,7 @@ kable(picks2, digits = 2) %>%
   <tr>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.16 </td>
+   <td style="text-align:right;"> 0.18 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 4 </td>
@@ -397,7 +397,7 @@ kable(picks3, digits = 2) %>%
   <tr>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.19 </td>
+   <td style="text-align:right;"> 0.21 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 7 </td>
@@ -758,9 +758,9 @@ kbl(tbl, digits=3) %>%
   <tr>
    <td style="text-align:left;"> 3 </td>
    <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.155 </td>
+   <td style="text-align:right;"> 0.176 </td>
    <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.155 </td>
+   <td style="text-align:right;"> 0.176 </td>
    <td style="text-align:left;"> NYJ </td>
    <td style="text-align:right;"> 0.214 </td>
   </tr>
@@ -789,7 +789,7 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:left;"> PHI </td>
    <td style="text-align:right;"> 0.343 </td>
    <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.186 </td>
+   <td style="text-align:right;"> 0.210 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 7 </td>
@@ -803,11 +803,11 @@ kbl(tbl, digits=3) %>%
   <tr>
    <td style="text-align:left;"> 8 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.153 </td>
+   <td style="text-align:right;"> 0.155 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.153 </td>
+   <td style="text-align:right;"> 0.155 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.153 </td>
+   <td style="text-align:right;"> 0.155 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
@@ -857,21 +857,152 @@ kbl(tbl, digits=3) %>%
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.226 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.224 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.222 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.207 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.209 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.067 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.065 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.082 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.081 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.066 </td>
   </tr>
 </tbody>
 </table>
 
+## What is the difference between the QB adjusted rating and the normal ELO rating?
+
+We can simply plot each teams win probability in both cases, as a dumbbell chart. 
+
+
+```r
+# data preprocessing
+dt <- fread(path)
+
+# calculate week, get proj loser and prob of loss. 
+total_weeks <- 13
+time_period <- seq(3, total_weeks, 1)
+
+dt[, week:=floor(as.numeric(difftime(date, week1, units="days")) / 7) + 1]
+
+t1 <- dt[, .(team1, elo_prob1, qbelo_prob1, week)]
+t2 <- dt[, .(team2, elo_prob2, qbelo_prob2, week)]
+
+names <- c("Team", "elo_prob", "qbelo_prob", "week")
+names(t1) <- names
+names(t2) <- names
+
+data <- rbind(t1, t2)
+
+# plot data 
+ggplot(data, aes(y=week, x=elo_prob, xend=qbelo_prob)) +
+  geom_dumbbell(size=1, color="#e3e2e1",
+                colour_x = "#5b8124", colour_xend = "#bad744") + 
+  labs(title = "Comparing ELO and QBELO win probabilities")
+```
+
+![](README_figs/README-unnamed-chunk-13-1.png)<!-- -->
+
+```r
+  facet_wrap(.~Team)
+```
+
+```
+## <ggproto object: Class FacetWrap, Facet, gg>
+##     compute_layout: function
+##     draw_back: function
+##     draw_front: function
+##     draw_labels: function
+##     draw_panels: function
+##     finish_data: function
+##     init_scales: function
+##     map_data: function
+##     params: list
+##     setup_data: function
+##     setup_params: function
+##     shrink: TRUE
+##     train_scales: function
+##     vars: function
+##     super:  <ggproto object: Class FacetWrap, Facet, gg>
+```
+Pretty crowded, look to subsetting the data, or other plots. Kernel density plot?
+
+## Discounting
+Can also look into discounting the differences of future weeks. 
+
+
+## Simulations
+We can move to comparing different models by simulating the season based on 
+binomial probabilities. We can estimate for a given set of probabilities 
+the percentage of times a set of picks reaches a given week. 
+
+
+```r
+# simulations ----------------------------------------
+sim <- function(teams){
+  week <- 0 # index at zero. If win, move past week 1. 
+  
+  for(p in teams$ProbWin){
+    rng <- runif(1, 0, 1)
+    
+    # simulate outcome
+    if(p < rng){
+      # win, move to next week
+      week <- week + 1
+    } else{
+      # lose, leave loop and return week
+      return(week)
+    }
+  }
+  # in case win each week
+  return(week)
+}
+
+get_proportion <- function(outcome){
+  setDT(outcome)[order(-week)][, .(prop=.N / N), by=.(week)][, cumprob:=cumsum(prop)]
+}
+
+call_sim <- function(teams, N, lab){
+  results <- list()
+  for(i in 1:N){
+    results[i] <- sim(teams)
+  }
+  results <- do.call(rbind.data.frame, results)
+  names(results) <- c("week")
+  
+  results <- get_proportion(results)
+  results$model <- lab
+  results$week <- results$week + start_week
+  results
+}
+
+N <- 100000
+start_week <- 3
+opp_cost <- call_sim(picks3, N, "Oppertunity Cost")
+week <- call_sim(picks2, N, "Lowest per week")
+prob <- call_sim(picks1, N, "Lowest probability overall")
+
+# Compare models
+data <- rbind(opp_cost, week, prob)
+
+ggplot(data, aes(x = week, y = cumprob, color = model)) + 
+  geom_line() + 
+  geom_point(alpha = 0.8) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(min(data$week), max(data$week) + 1)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) + 
+  labs(title = "Cumulative probability of reaching a given week",
+       x = "Week number", 
+       y = "Pr(X < x)") + 
+  theme_classic(10)
+```
+
+![](README_figs/README-unnamed-chunk-14-1.png)<!-- -->
+
+From the above plot, there is not a significant difference between the in terms of 
+probabilities of lasting to a given week. I suppose this is understandable given 
+how similar the weekly averages are. 
