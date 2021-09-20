@@ -111,6 +111,13 @@ optimal_rebuy_picks <- function(dt, picks){
 }
 
 # simulations ----------------------------------------
+
+
+# Estimates the losers pool based on a set of picks
+# For each week, draws a uniform variable, if rv is 
+# less than teams win probability, the team wins, and 
+# we return the total weeks until a win. Otherwise 
+# we move to the next week. 
 sim <- function(teams){
   week <- 0 # index at zero. If win, move past week 1. 
   
@@ -130,10 +137,16 @@ sim <- function(teams){
   return(week)
 }
 
+# Calculates the probability of a set of picks reaching
+# a given week number.
 get_proportion <- function(outcome){
   setDT(outcome)[order(-week)][, .(prop=.N / N), by=.(week)][, cumprob:=cumsum(prop)]
 }
 
+# Calls sim to simulate the losers pool season based 
+# on a set of picks N times. Then calls the proportion 
+# function to get the CDF of outcomes, updating week 
+# indicies and adds a model label.
 call_sim <- function(teams, N, lab){
   results <- list()
   for(i in 1:N){
@@ -143,7 +156,7 @@ call_sim <- function(teams, N, lab){
   names(results) <- c("week")
   
   results <- get_proportion(results)
-  results$model <- lab
   results$week <- results$week + start_week
+  results$model <- lab
   results
 }
