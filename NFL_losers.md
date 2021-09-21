@@ -42,17 +42,22 @@ once.
 
 
 ```r
+# sort teams by average win prob
 dt %>% 
   tidyr::pivot_longer(cols = c("loser", "winner"), values_to = "team") %>%
   mutate(p = ifelse(name == "loser", p_win, p_win_winner)) %>%
   select(-c("p_win", "p_win_winner")) %>%
+  group_by(team) %>%
+  mutate(win_avg = mean(p)) %>%
+  ungroup() %>%
+  mutate(team = reorder(team, win_avg)) %>% # reorder teams by avg win
   ggplot(aes(week, team, fill=p)) + 
   geom_tile() + 
   scale_fill_viridis_c("Pr(Win)") + 
   theme_classic() + 
   labs(title = "Weekly Win Probabilities Heatmap by team", 
        x = "Week Number", 
-       y = "Team") + 
+       y = "Team, ranked by average win probability") + 
   scale_x_continuous(expand = c(0, 0))
 ```
 
@@ -416,6 +421,11 @@ one for the Opportunity Cost model.
 
 
 ```r
+# Consider merge...
+# figure out dup col names and good to go.
+# data <- Reduce(function(...) merge(..., by = c("week"), all.x = TRUE, suffix = c(seq(1, 7, 1))), 
+#                list(oc, oc9, oc7, wk, pr, pr9, pr7))
+
 tbl <- left_join(oc, oc9, by="week", suffix=c("_1", "_2"))
 tbl <- left_join(tbl, oc7, by="week", suffix=c("", "_3"))
 tbl <- left_join(tbl, wk, by="week", suffix=c("", "_3"))
