@@ -57,7 +57,7 @@ dt %>%
   theme_classic() + 
   labs(title = "Weekly Win Probabilities Heatmap by team", 
        x = "Week Number", 
-       y = "Team, ranked by average win probability") + 
+       y = "Team Name") + 
   scale_x_continuous(expand = c(0, 0))
 ```
 
@@ -100,8 +100,10 @@ wk <- by_week(past_picks, past_weeks, beta = 1)
 pr <- by_prob(past_picks, past_weeks, beta = 1)
 oc <- by_oc(past_picks, past_weeks, beta = 1)
 
-tbl <- left_join(wk, pr, by="week", suffix=c("_1", "_2"))
-tbl <- left_join(tbl, oc, by="week", suffix=c("", "_3"))
+#TODO: come up with a better approach than this to get average row
+
+tbl <- left_join(wk, pr, by="week")
+tbl <- left_join(tbl, oc, by="week")
 names <- c("Week", rep(c("Team", "ProbWin"),3))
 names(tbl) <- names
 
@@ -110,6 +112,7 @@ avg_2 <- mean(as.numeric(pr$p_win))
 avg_3 <- mean(as.numeric(oc$p_win))
 avg_row <- data.frame("Mean", "", avg_1, "", avg_2, "", avg_3)
 names(avg_row) <- names(tbl)
+
 
 sd_1 <- sd(as.numeric(wk$p_win))
 sd_2 <- sd(as.numeric(pr$p_win))
@@ -159,11 +162,11 @@ kbl(tbl, digits=3) %>%
   <tr>
    <td style="text-align:left;"> 4 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.095 </td>
+   <td style="text-align:right;"> 0.091 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.095 </td>
+   <td style="text-align:right;"> 0.091 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.095 </td>
+   <td style="text-align:right;"> 0.091 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5 </td>
@@ -186,11 +189,11 @@ kbl(tbl, digits=3) %>%
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.146 </td>
+   <td style="text-align:right;"> 0.142 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.146 </td>
+   <td style="text-align:right;"> 0.142 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.146 </td>
+   <td style="text-align:right;"> 0.142 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
@@ -222,20 +225,20 @@ kbl(tbl, digits=3) %>%
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.191 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.190 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.187 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.186 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.180 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.179 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.065 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.066 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.065 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.066 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.048 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.050 </td>
   </tr>
 </tbody>
 </table>
@@ -340,9 +343,9 @@ kbl(results, digits = 2, caption = "Likelihood of reaching a given week by model
   </tr>
   <tr>
    <td style="text-align:right;"> 5 </td>
-   <td style="text-align:right;"> 0.75 </td>
-   <td style="text-align:right;"> 0.75 </td>
-   <td style="text-align:right;"> 0.75 </td>
+   <td style="text-align:right;"> 0.76 </td>
+   <td style="text-align:right;"> 0.76 </td>
+   <td style="text-align:right;"> 0.76 </td>
    <td style="text-align:right;"> 0.77 </td>
    <td style="text-align:right;"> 0.77 </td>
    <td style="text-align:right;"> 0.54 </td>
@@ -370,22 +373,22 @@ kbl(results, digits = 2, caption = "Likelihood of reaching a given week by model
   </tr>
   <tr>
    <td style="text-align:right;"> 8 </td>
-   <td style="text-align:right;"> 0.40 </td>
-   <td style="text-align:right;"> 0.40 </td>
-   <td style="text-align:right;"> 0.40 </td>
+   <td style="text-align:right;"> 0.41 </td>
+   <td style="text-align:right;"> 0.41 </td>
+   <td style="text-align:right;"> 0.41 </td>
    <td style="text-align:right;"> 0.36 </td>
    <td style="text-align:right;"> 0.36 </td>
    <td style="text-align:right;"> 0.29 </td>
-   <td style="text-align:right;"> 0.37 </td>
+   <td style="text-align:right;"> 0.38 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 0.34 </td>
    <td style="text-align:right;"> 0.34 </td>
    <td style="text-align:right;"> 0.34 </td>
-   <td style="text-align:right;"> 0.30 </td>
-   <td style="text-align:right;"> 0.30 </td>
-   <td style="text-align:right;"> 0.24 </td>
+   <td style="text-align:right;"> 0.31 </td>
+   <td style="text-align:right;"> 0.31 </td>
+   <td style="text-align:right;"> 0.25 </td>
    <td style="text-align:right;"> 0.32 </td>
   </tr>
   <tr>
@@ -395,7 +398,7 @@ kbl(results, digits = 2, caption = "Likelihood of reaching a given week by model
    <td style="text-align:right;"> 0.27 </td>
    <td style="text-align:right;"> 0.24 </td>
    <td style="text-align:right;"> 0.24 </td>
-   <td style="text-align:right;"> 0.19 </td>
+   <td style="text-align:right;"> 0.20 </td>
    <td style="text-align:right;"> 0.24 </td>
   </tr>
   <tr>
@@ -523,19 +526,19 @@ kbl(tbl, digits=3, caption = "Weekly Picks by Model") %>%
   <tr>
    <td style="text-align:left;"> 4 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.095 </td>
+   <td style="text-align:right;"> 0.091 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.095 </td>
+   <td style="text-align:right;"> 0.091 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.095 </td>
+   <td style="text-align:right;"> 0.091 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.095 </td>
+   <td style="text-align:right;"> 0.091 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.095 </td>
+   <td style="text-align:right;"> 0.091 </td>
    <td style="text-align:left;"> JAX </td>
    <td style="text-align:right;"> 0.284 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.095 </td>
+   <td style="text-align:right;"> 0.091 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5 </td>
@@ -574,19 +577,19 @@ kbl(tbl, digits=3, caption = "Weekly Picks by Model") %>%
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.146 </td>
+   <td style="text-align:right;"> 0.142 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.146 </td>
+   <td style="text-align:right;"> 0.142 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.146 </td>
+   <td style="text-align:right;"> 0.142 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.146 </td>
+   <td style="text-align:right;"> 0.142 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.146 </td>
+   <td style="text-align:right;"> 0.142 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.146 </td>
+   <td style="text-align:right;"> 0.142 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.146 </td>
+   <td style="text-align:right;"> 0.142 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
@@ -642,34 +645,34 @@ kbl(tbl, digits=3, caption = "Weekly Picks by Model") %>%
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.180 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.179 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.180 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.179 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.180 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.179 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.191 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.190 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.187 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.186 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.187 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.186 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.209 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.048 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.050 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.048 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.050 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.048 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.050 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.065 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.066 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.065 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.066 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.065 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.066 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.045 </td>
   </tr>
@@ -693,7 +696,7 @@ names(oc7) <- labs
 names(oc9) <- labs
 names(wk) <- labs
 names(pr) <- labs
-names(pr7) <- labs
+names(pr9) <- labs
 
 
 oc$Approach <- "OC, Beta = 1"
@@ -701,11 +704,11 @@ oc7$Approach <- "OC, Beta = 0.7"
 oc9$Approach <- "OC, Beta = 0.9"
 wk$Approach <- "By Week"
 pr$Approach <- "By Prob, Beta = 1"
-pr7$Approach <- "By Prob, Beta = 0.7"
+pr9$Approach <- "By Prob, Beta = 0.9"
 
 
 
-data <- rbind(oc, oc9, oc7, wk, pr, pr7)
+data <- rbind(oc, oc9, oc7, wk, pr, pr9)
 data$Approach <- as.factor(data$Approach)
 
 
