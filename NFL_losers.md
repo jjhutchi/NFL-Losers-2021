@@ -20,6 +20,8 @@ and optimize my picks to minimize the total win probability across the season.
 
 
 ```r
+#TODO: Update the code to handle future weeks.
+
 source("pick_functions.R")
 pacman::p_load(data.table, ggplot2, ggalt, dplyr, knitr, kableExtra)
 
@@ -27,10 +29,10 @@ pacman::p_load(data.table, ggplot2, ggalt, dplyr, knitr, kableExtra)
 path <- "https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv"
 week1 <- as.Date("2021-09-09")
 total_weeks <- 10
-start_week <- 3
+start_week <- max(ceiling(as.numeric(( Sys.Date() - as.Date("2021-09-09") )) / 7) + 1, 3) # little janky
 time_period <- c(start_week:total_weeks)
-past_picks <- c("DAL", "TEN")
-past_weeks <- c(1, 2)
+past_picks <- c("CHI", "TEN", "NYJ")
+past_weeks <- c(1, 2, 3)
 
 dt <- read_data(path)
 ```
@@ -96,15 +98,13 @@ $\underline{w}$ is the start week.
 
 
 ```r
-wk <- by_week(past_picks, past_weeks, beta = 1)
-pr <- by_prob(past_picks, past_weeks, beta = 1)
-oc <- by_oc(past_picks, past_weeks, beta = 1)
-
-#TODO: come up with a better approach than this to get average row
+wk <- by_week(past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
+pr <- by_prob(past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
+oc <- by_oc(past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
 
 tbl <- left_join(wk, pr, by="week")
 tbl <- left_join(tbl, oc, by="week")
-names <- c("Week", rep(c("Team", "ProbWin"),3))
+names <- c("Week", rep(c("Team", "ProbWin"), 3))
 names(tbl) <- names
 
 avg_1 <- mean(as.numeric(wk$p_win))
@@ -127,8 +127,8 @@ tbl <- rbind(tbl, sd_row)
 kbl(tbl, digits=3) %>%
   kable_classic(full_width=F) %>%
   add_header_above(c(" " = 1, "Approach 1" = 2, "Approach 2" = 2, "Approach 3" = 2)) %>%
-  row_spec(total_weeks-1, bold=T) %>%
-  row_spec(total_weeks, bold=T)
+  row_spec(nrow(tbl), bold=T) %>%
+  row_spec(nrow(tbl) - 1, bold=T)
 ```
 
 <table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
@@ -151,83 +151,74 @@ kbl(tbl, digits=3) %>%
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;"> 3 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.153 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.153 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.169 </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> 4 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.091 </td>
+   <td style="text-align:right;"> 0.068 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.091 </td>
+   <td style="text-align:right;"> 0.068 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.091 </td>
+   <td style="text-align:right;"> 0.068 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.196 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:right;"> 0.224 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.202 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:right;"> 0.224 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 6 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.285 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.311 </td>
    <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.212 </td>
+   <td style="text-align:right;"> 0.250 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.250 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.250 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 7 </td>
+   <td style="text-align:left;"> IND </td>
+   <td style="text-align:right;"> 0.239 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.142 </td>
+   <td style="text-align:right;"> 0.116 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.142 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.142 </td>
+   <td style="text-align:right;"> 0.116 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.156 </td>
+   <td style="text-align:right;"> 0.169 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.156 </td>
+   <td style="text-align:right;"> 0.169 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.156 </td>
+   <td style="text-align:right;"> 0.169 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.244 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.207 </td>
+   <td style="text-align:right;"> 0.176 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.207 </td>
+   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.176 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 10 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.250 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.222 </td>
+   <td style="text-align:right;"> 0.255 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.250 </td>
+   <td style="text-align:right;"> 0.255 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.255 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.190 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.193 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.186 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.179 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.179 </td>
   </tr>
@@ -236,9 +227,9 @@ kbl(tbl, digits=3) %>%
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.066 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.066 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.070 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.050 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.070 </td>
   </tr>
 </tbody>
 </table>
@@ -290,14 +281,14 @@ results <- do.call(cbind.data.frame, results)
 names(results) <- c("Opp Cost, Beta = 1", "Opp Cost, Beta = 0.9", "Opp Cost, Beta = 0.7", 
                     "By Prob, Beta = 1", "By Prob, Beta = 0.9", "By Prob, Beta = 0,7", 
                     "By Week")
-results$Week <- seq(4, 11, 1)
+results$Week <- seq(4, 10, 1)
 
 results %>%
   tidyr::pivot_longer(cols = -Week, names_to = "Model", values_to = "p") %>%
   ggplot(aes(x = Week, y = p, color = Model)) +
   geom_line() + 
   geom_point(alpha = 0.8) + 
-  scale_x_continuous(expand = c(0, 0), limits = c(4, 12)) +
+  scale_x_continuous(expand = c(0, 0), limits = c(4, 10)) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) + 
   labs(title = "Probability of reaching a given week",
        x = "Week number", 
@@ -333,83 +324,73 @@ kbl(results, digits = 2, caption = "Likelihood of reaching a given week by model
 <tbody>
   <tr>
    <td style="text-align:right;"> 4 </td>
-   <td style="text-align:right;"> 0.83 </td>
-   <td style="text-align:right;"> 0.83 </td>
-   <td style="text-align:right;"> 0.83 </td>
-   <td style="text-align:right;"> 0.85 </td>
-   <td style="text-align:right;"> 0.85 </td>
-   <td style="text-align:right;"> 0.75 </td>
-   <td style="text-align:right;"> 0.85 </td>
+   <td style="text-align:right;"> 0.93 </td>
+   <td style="text-align:right;"> 0.93 </td>
+   <td style="text-align:right;"> 0.93 </td>
+   <td style="text-align:right;"> 0.93 </td>
+   <td style="text-align:right;"> 0.93 </td>
+   <td style="text-align:right;"> 0.73 </td>
+   <td style="text-align:right;"> 0.93 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 5 </td>
-   <td style="text-align:right;"> 0.76 </td>
-   <td style="text-align:right;"> 0.76 </td>
-   <td style="text-align:right;"> 0.76 </td>
-   <td style="text-align:right;"> 0.77 </td>
-   <td style="text-align:right;"> 0.77 </td>
-   <td style="text-align:right;"> 0.54 </td>
-   <td style="text-align:right;"> 0.77 </td>
+   <td style="text-align:right;"> 0.72 </td>
+   <td style="text-align:right;"> 0.72 </td>
+   <td style="text-align:right;"> 0.72 </td>
+   <td style="text-align:right;"> 0.72 </td>
+   <td style="text-align:right;"> 0.72 </td>
+   <td style="text-align:right;"> 0.56 </td>
+   <td style="text-align:right;"> 0.75 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 6 </td>
-   <td style="text-align:right;"> 0.60 </td>
-   <td style="text-align:right;"> 0.60 </td>
-   <td style="text-align:right;"> 0.60 </td>
-   <td style="text-align:right;"> 0.61 </td>
-   <td style="text-align:right;"> 0.61 </td>
-   <td style="text-align:right;"> 0.43 </td>
-   <td style="text-align:right;"> 0.61 </td>
+   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.42 </td>
+   <td style="text-align:right;"> 0.56 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 7 </td>
-   <td style="text-align:right;"> 0.47 </td>
-   <td style="text-align:right;"> 0.47 </td>
-   <td style="text-align:right;"> 0.47 </td>
-   <td style="text-align:right;"> 0.42 </td>
-   <td style="text-align:right;"> 0.42 </td>
-   <td style="text-align:right;"> 0.34 </td>
-   <td style="text-align:right;"> 0.44 </td>
+   <td style="text-align:right;"> 0.48 </td>
+   <td style="text-align:right;"> 0.48 </td>
+   <td style="text-align:right;"> 0.48 </td>
+   <td style="text-align:right;"> 0.48 </td>
+   <td style="text-align:right;"> 0.48 </td>
+   <td style="text-align:right;"> 0.37 </td>
+   <td style="text-align:right;"> 0.43 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 8 </td>
-   <td style="text-align:right;"> 0.41 </td>
-   <td style="text-align:right;"> 0.41 </td>
-   <td style="text-align:right;"> 0.41 </td>
+   <td style="text-align:right;"> 0.40 </td>
+   <td style="text-align:right;"> 0.40 </td>
+   <td style="text-align:right;"> 0.40 </td>
+   <td style="text-align:right;"> 0.40 </td>
+   <td style="text-align:right;"> 0.40 </td>
+   <td style="text-align:right;"> 0.31 </td>
    <td style="text-align:right;"> 0.36 </td>
-   <td style="text-align:right;"> 0.36 </td>
-   <td style="text-align:right;"> 0.29 </td>
-   <td style="text-align:right;"> 0.38 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 9 </td>
-   <td style="text-align:right;"> 0.34 </td>
-   <td style="text-align:right;"> 0.34 </td>
-   <td style="text-align:right;"> 0.34 </td>
-   <td style="text-align:right;"> 0.31 </td>
-   <td style="text-align:right;"> 0.31 </td>
-   <td style="text-align:right;"> 0.25 </td>
-   <td style="text-align:right;"> 0.32 </td>
+   <td style="text-align:right;"> 0.33 </td>
+   <td style="text-align:right;"> 0.33 </td>
+   <td style="text-align:right;"> 0.33 </td>
+   <td style="text-align:right;"> 0.33 </td>
+   <td style="text-align:right;"> 0.33 </td>
+   <td style="text-align:right;"> 0.24 </td>
+   <td style="text-align:right;"> 0.29 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 0.27 </td>
-   <td style="text-align:right;"> 0.27 </td>
-   <td style="text-align:right;"> 0.27 </td>
-   <td style="text-align:right;"> 0.24 </td>
-   <td style="text-align:right;"> 0.24 </td>
-   <td style="text-align:right;"> 0.20 </td>
-   <td style="text-align:right;"> 0.24 </td>
-  </tr>
-  <tr>
-   <td style="text-align:right;"> 11 </td>
-   <td style="text-align:right;"> 0.20 </td>
-   <td style="text-align:right;"> 0.20 </td>
-   <td style="text-align:right;"> 0.20 </td>
+   <td style="text-align:right;"> 0.25 </td>
+   <td style="text-align:right;"> 0.25 </td>
+   <td style="text-align:right;"> 0.25 </td>
+   <td style="text-align:right;"> 0.25 </td>
+   <td style="text-align:right;"> 0.25 </td>
    <td style="text-align:right;"> 0.19 </td>
-   <td style="text-align:right;"> 0.19 </td>
-   <td style="text-align:right;"> 0.15 </td>
-   <td style="text-align:right;"> 0.18 </td>
+   <td style="text-align:right;"> 0.22 </td>
   </tr>
 </tbody>
 <tfoot>
@@ -432,9 +413,9 @@ one for the Opportunity Cost model.
 tbl <- left_join(oc, oc9, by="week", suffix=c("_1", "_2"))
 tbl <- left_join(tbl, oc7, by="week", suffix=c("", "_3"))
 tbl <- left_join(tbl, wk, by="week", suffix=c("", "_3"))
+tbl <- left_join(tbl, pr, by="week", suffix=c("", "_3"))
 tbl <- left_join(tbl, pr9, by="week", suffix=c("", "_3"))
 tbl <- left_join(tbl, pr7, by="week", suffix=c("", "_3"))
-tbl <- left_join(tbl, pr, by="week", suffix=c("", "_3"))
 names <- c("Week", rep(c("Team", "ProbWin"),7))
 names(tbl) <- names
 
@@ -470,8 +451,8 @@ kbl(tbl, digits=3, caption = "Weekly Picks by Model") %>%
   add_header_above(c(" " = 1, "OC, Beta = 1" = 2, "OC, Beta = 0.9" = 2, "OC, Beta = 0.7" = 2, 
                      "By Week" = 2, "Prob, Beta = 1" = 2, 
                      "Prob, Beta = 0.9" = 2, "Prob, Beta = 0.7" = 2)) %>%
-  row_spec(total_weeks-1, bold=T) %>%
-  row_spec(total_weeks, bold=T)
+  row_spec(nrow(tbl), bold=T) %>%
+  row_spec(nrow(tbl) - 1, bold=T)
 ```
 
 <table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
@@ -507,140 +488,123 @@ kbl(tbl, digits=3, caption = "Weekly Picks by Model") %>%
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;"> 3 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.169 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.169 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.169 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.153 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.153 </td>
-   <td style="text-align:left;"> LAC </td>
-   <td style="text-align:right;"> 0.246 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.153 </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> 4 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.091 </td>
+   <td style="text-align:right;"> 0.068 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.091 </td>
+   <td style="text-align:right;"> 0.068 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.091 </td>
+   <td style="text-align:right;"> 0.068 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.091 </td>
+   <td style="text-align:right;"> 0.068 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.091 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.284 </td>
+   <td style="text-align:right;"> 0.068 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.091 </td>
+   <td style="text-align:right;"> 0.068 </td>
+   <td style="text-align:left;"> PIT </td>
+   <td style="text-align:right;"> 0.274 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:right;"> 0.224 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:right;"> 0.224 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:right;"> 0.224 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.196 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:right;"> 0.224 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:right;"> 0.224 </td>
    <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.202 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:right;"> 0.224 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 6 </td>
    <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.212 </td>
+   <td style="text-align:right;"> 0.250 </td>
    <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.212 </td>
+   <td style="text-align:right;"> 0.250 </td>
    <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.212 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.285 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.311 </td>
+   <td style="text-align:right;"> 0.250 </td>
    <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.212 </td>
-   <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.311 </td>
+   <td style="text-align:right;"> 0.250 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.250 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.250 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.250 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.142 </td>
+   <td style="text-align:right;"> 0.116 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.142 </td>
+   <td style="text-align:right;"> 0.116 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.142 </td>
+   <td style="text-align:right;"> 0.116 </td>
+   <td style="text-align:left;"> IND </td>
+   <td style="text-align:right;"> 0.239 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.142 </td>
+   <td style="text-align:right;"> 0.116 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.142 </td>
+   <td style="text-align:right;"> 0.116 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.142 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.142 </td>
+   <td style="text-align:right;"> 0.116 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.156 </td>
+   <td style="text-align:right;"> 0.169 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.156 </td>
+   <td style="text-align:right;"> 0.169 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.156 </td>
+   <td style="text-align:right;"> 0.169 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.156 </td>
+   <td style="text-align:right;"> 0.169 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.156 </td>
+   <td style="text-align:right;"> 0.169 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.156 </td>
+   <td style="text-align:right;"> 0.169 </td>
    <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.156 </td>
+   <td style="text-align:right;"> 0.169 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.207 </td>
+   <td style="text-align:right;"> 0.176 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.207 </td>
+   <td style="text-align:right;"> 0.176 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.207 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.244 </td>
+   <td style="text-align:right;"> 0.176 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.207 </td>
+   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.176 </td>
    <td style="text-align:left;"> HOU </td>
-   <td style="text-align:right;"> 0.206 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.207 </td>
+   <td style="text-align:right;"> 0.214 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 10 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.250 </td>
+   <td style="text-align:right;"> 0.255 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.250 </td>
+   <td style="text-align:right;"> 0.255 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.250 </td>
+   <td style="text-align:right;"> 0.255 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.250 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.222 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.222 </td>
-   <td style="text-align:left;"> NYJ </td>
-   <td style="text-align:right;"> 0.222 </td>
+   <td style="text-align:right;"> 0.255 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.255 </td>
+   <td style="text-align:left;"> ATL </td>
+   <td style="text-align:right;"> 0.255 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.235 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
@@ -651,30 +615,30 @@ kbl(tbl, digits=3, caption = "Weekly Picks by Model") %>%
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.179 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.190 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.193 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.186 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.179 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.186 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.179 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.209 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.212 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.050 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.070 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.050 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.070 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.050 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.066 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.070 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.066 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.066 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.070 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.045 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.070 </td>
+   <td style="text-align:left;font-weight: bold;">  </td>
+   <td style="text-align:right;font-weight: bold;"> 0.053 </td>
   </tr>
 </tbody>
 </table>
@@ -717,7 +681,7 @@ theme_set(theme_bw(12))
 ggplot(data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) + 
   geom_line(aes(group = Week), color="#e3e2e1", size = 2) +
   geom_point(size = 3) + 
-  xlim(3, 11) +
+  xlim(4, 10) +
   coord_flip() + 
   scale_color_viridis_d() + 
   labs(title = "Comparing weekly win probabilities per Approach", 
@@ -727,5 +691,32 @@ ggplot(data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
 ```
 
 ![](README_figs/README-unnamed-chunk-8-1.png)<!-- -->
+
+## Alterative weeks for optimal team picks
+We can view other weeks of the recommended team below in a selection plot. 
+Here the only alternative to picking HOU comes in the By Prob, Beta = 0.7 model 
+which selects PIT. However, it is clear there is no future gain from this pick.
+
+
+```r
+#TODO: maybe look to other possibilities - like second best pick from the models. 
+# this may be mroe complicated and require its own code block. 
+dt %>% 
+  filter(!week %in% past_weeks, 
+         !loser %in% past_picks) %>%
+  group_by(week, loser) %>%
+  mutate(suggested = ifelse(loser == oc9[1, "Team"] | loser == pr7[1, "loser"] , loser, "The rest")) %>%
+  ggplot() + 
+  geom_point(aes(x=week, y=p_win, color = suggested), alpha=0.6, size = 3) + 
+  coord_flip() + 
+  labs(title = "Top two recomendations by week", 
+       x = "Week Number", 
+       y = "Win Probability", 
+       color = "Recommended pick") + 
+  scale_color_viridis_d() + 
+  theme_classic(12)
+```
+
+![](README_figs/README-unnamed-chunk-9-1.png)<!-- -->
 
 
