@@ -12,7 +12,7 @@ read_data <- function(path){
   dt <- dt[, .(week, loser, winner, p_win, p_win_winner)]
   
   dt <- dt[week %in% time_period]
-  
+
   dt <- dt[!loser %in% past_picks]
   
   return(dt)

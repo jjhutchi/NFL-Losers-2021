@@ -15,20 +15,29 @@ The objective is to pick one team to lose each week, if your team wins, you are
 out of the pool. The catch is that once a team is picked it cannot be picked 
 again. 
 
-My approach is simple, use the NFL forecast data from [FiveThirtyEight](https://projects.fivethirtyeight.com/2021-nfl-predictions/games/) 
-and optimize my picks to minimize the total win probability across the season. 
+I am taking a fairly simple approach to making my picks this year. 
+Download and use the NFL forecast data from 
+[FiveThirtyEight](https://projects.fivethirtyeight.com/2021-nfl-predictions/games/) 
+to optimize my picks to give the best probability of lasting deep into the season. 
 
 
 
+## Visualizations 
 Below we can see a heatmap of all the win probabilities throughout the season. 
-Teams like Houston, and Washington have a low lieklihood of winning in many 
+Teams like Houston, and Washington have a low likelihood of winning in many 
 games in the season. This motivates our problem as we can only pick them each 
-once. 
+once. The teams are ordered by average likelihood of winning, we can see Houston, 
+Detroit, and Jacksonville are the three lowest teams. There is an opportunity to 
+out play my competitors by picking these teams in the best possible week, i.e. 
+holding off until Week 4 to pick Houston.
 
 ![](README_figs/README-unnamed-chunk-3-1.png)<!-- -->
 
-We can also limit our choices to the forecasted underdog, as there are more teams 
-than weeks we should never need to pick a favourite. 
+Below is a plot of the choice set of underdogs in each game. We can see there 
+is a finite set of picks per week, with each week having differing probabilities. 
+Ideally, we are looking for the path through these points that minimizes our 
+chances of losing from the competition.
+
 ![](README_figs/README-unnamed-chunk-4-1.png)<!-- -->
 
 ## Different approaches to consider
@@ -47,7 +56,12 @@ Each of the above approaches allow for future discounting. I.e.
 $$ Pr(Win | Week = w) = Pr(Win) * \beta^{(w - \underline{w})}$$ where 
 $\underline{w}$ is the start week. 
 
+The table below shows the optimal picks following each approach, past weeks are 
+filled with the set picks I made. We can see there is a slight improvement when 
+moving from the naiive approaches to Approach 3.
+
 <table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<caption>Comparison of approaches</caption>
  <thead>
 <tr>
 <th style="empty-cells: hide;" colspan="1"></th>
@@ -244,7 +258,8 @@ $$ Pr(W \leq w) = \Pi_{i = 1}^w (1 - Pr(w_i))  $$
 </table>
 
 As expected, we have better chances earlier when using a discount value less than 
-one for the Opportunity Cost model. 
+one for the Opportunity Cost model. Notice there is not much variation across 
+differing beta values. 
 
 <table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
 <caption>Weekly Picks by Model</caption>
@@ -517,4 +532,8 @@ bets.
 
 The above analysis is not very supportive of not taking MIA in both picks next week. 
 This analysis is flawed, as we rule out the first pick in each week. 
+
+## Todos
+* Allow first few plots to contain all the data
+* Make the choice plot with paths of optimal picks
 
