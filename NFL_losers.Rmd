@@ -22,7 +22,7 @@ again.
 My approach is simple, use the NFL forecast data from [FiveThirtyEight](https://projects.fivethirtyeight.com/2021-nfl-predictions/games/) 
 and optimize my picks to minimize the total win probability across the season. 
 
-```{r}
+```{r, echo = FALSE}
 
 #TODO: Update the code to handle future weeks.
 
@@ -35,8 +35,8 @@ week1 <- as.Date("2021-09-09")
 total_weeks <- 10
 start_week <- max(ceiling(as.numeric(( Sys.Date() - as.Date("2021-09-09") )) / 7) + 1, 3) # little janky
 time_period <- c(start_week:total_weeks)
-past_picks <- c("CHI", "TEN", "NYJ")
-past_weeks <- c(1, 2, 3)
+past_picks <- c("CHI", "TEN", "NYJ", "HOU")
+past_weeks <- c(1, 2, 3, 4)
 
 dt <- read_data(path)
 ```
@@ -46,7 +46,7 @@ Teams like Houston, and Washington have a low lieklihood of winning in many
 games in the season. This motivates our problem as we can only pick them each 
 once. 
 
-```{r}
+```{r, echo = FALSE}
 # sort teams by average win prob
 dt %>% 
   tidyr::pivot_longer(cols = c("loser", "winner"), values_to = "team") %>%
@@ -68,7 +68,7 @@ dt %>%
 
 We can also limit our choices to the forecasted underdog, as there are more teams 
 than weeks we should never need to pick a favourite. 
-```{r}
+```{r, echo = FALSE}
 ggplot() + 
   geom_point(data = dt, aes(x=week, y=p_win), alpha=0.8, color="gray", size = 3) + 
   coord_flip() + 
@@ -94,7 +94,7 @@ Each of the above approaches allow for future discounting. I.e.
 $$ Pr(Win | Week = w) = Pr(Win) * \beta^{(w - \underline{w})}$$ where 
 $\underline{w}$ is the start week. 
 
-```{r}
+```{r, echo = FALSE}
 wk <- by_week(past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
 pr <- by_prob(past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
 oc <- by_oc(past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
@@ -147,7 +147,7 @@ in week $i$, or losing in week $i$.
 
 $$ Pr(W \leq w) = \Pi_{i = 1}^w (1 - Pr(w_i))  $$
 
-```{r}
+```{r, echo = FALSE}
 cumprob <- function(picks, inc_weeks = FALSE){
   p <- purrr::accumulate((1-picks$p_win), function(x, y)  x * y)
   weeks <- picks$Week
@@ -174,14 +174,14 @@ results <- do.call(cbind.data.frame, results)
 names(results) <- c("Opp Cost, Beta = 1", "Opp Cost, Beta = 0.9", "Opp Cost, Beta = 0.7", 
                     "By Prob, Beta = 1", "By Prob, Beta = 0.9", "By Prob, Beta = 0,7", 
                     "By Week")
-results$Week <- seq(4, 10, 1)
+results$Week <- seq(start_week, 10, 1)
 
 results %>%
   tidyr::pivot_longer(cols = -Week, names_to = "Model", values_to = "p") %>%
   ggplot(aes(x = Week, y = p, color = Model)) +
   geom_line() + 
   geom_point(alpha = 0.8) + 
-  scale_x_continuous(expand = c(0, 0), limits = c(4, 10)) +
+  scale_x_continuous(expand = c(0, 0), limits = c(start_week, 10)) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) + 
   labs(title = "Probability of reaching a given week",
        x = "Week number", 
@@ -200,7 +200,7 @@ kbl(results, digits = 2, caption = "Likelihood of reaching a given week by model
 As expected, we have better chances earlier when using a discount value less than 
 one for the Opportunity Cost model. 
 
-```{r}
+```{r, echo = FALSE}
 
 # Consider merge...
 # figure out dup col names and good to go.
@@ -261,7 +261,7 @@ average for a better liklihood of lasting in the event.
 Our best two models are the $OC, Beta = 1$ and $OC, Beta = 0.9$. Below are the 
 differences in the picks. 
 
-```{r}
+```{r, echo = FALSE}
 labs <- c("Week", "Team", "ProbWin")
 names(oc) <- labs
 names(oc7) <- labs
@@ -303,7 +303,7 @@ We can view other weeks of the recommended team below in a selection plot.
 Here the only alternative to picking HOU comes in the By Prob, Beta = 0.7 model 
 which selects PIT. However, it is clear there is no future gain from this pick.
 
-```{r}
+```{r, echo = FALSE}
 #TODO: maybe look to other possibilities - like second best pick from the models. 
 # this may be mroe complicated and require its own code block. 
 dt %>% 
@@ -322,4 +322,92 @@ dt %>%
   theme_classic(12)
 ```
 
+## What is the next best possible pick?
+If we remove the optimal pick from our choice set, what is the next best pick?
+This is done so I can consider picking two different teams per week to hedge my 
+bets. 
+
+```{r, echo = FALSE}
+first_pick <- oc9
+skip <- as.character(first_pick[1,2])
+beta = 0.9
+
+# TODO: was unable to alter the original function
+for(i in start_week:total_weeks){
+    
+    pick <- dt[week %in% c(start_week:total_weeks)]
+    pick <- pick[!week %in% past_weeks & !loser %in% past_picks, ]
+    if(!is.null(skip)){
+      pick <- pick[!week == start_week | !loser == skip]
+    }
+    pick <- pick[order(week, p_win)]
+    pick[, oc:= shift(p_win, 1, type="lead") - p_win, by = week]
+    pick[, oc:= oc * beta^(week - start_week)]
+    pick <- pick[, .SD[1], week]
+    pick <- pick[order(-oc)]
+    pick <- pick[, .SD[1]]
+    
+    past_weeks <- append(past_weeks, pick$week)
+    past_picks <- append(past_picks, pick$loser)
+    
+  }
+  
+second_pick <- join_picks(past_weeks, past_picks)
+
+# plot dumbell chart of the two
+first_pick$Approach <- "First pick"
+second_pick$Approach <- "Second pick"
+
+names(first_pick) <- c("week", "loser", "p_win", "Approach")
+data <- rbind(first_pick, second_pick)
+ggplot(data, aes(x=week, y=p_win, color = Approach)) + 
+  geom_line(aes(group = week), color="#e3e2e1", size = 2) +
+  geom_point(alpha=0.6, size = 3) +
+  coord_flip() + 
+  labs(title = "Choice profiles when making different picks in the upcoming week", 
+       x = "Week Number", 
+       y = "Win Probability", 
+       color = "Models") + 
+  scale_color_viridis_d() + 
+  theme_classic(12)
+
+# make weekly probabilities for top pick and not top pick
+prob1 <- cumprob(first_pick)
+prob2 <- cumprob(second_pick)
+plot <- cbind(rep(c(start_week:total_weeks), 2), prob1, prob2)
+names(plot) <- c("Week", "First Pick", "Second Pick")
+
+plot %>%
+  tidyr::pivot_longer(cols = -Week, names_to = "Model", values_to = "p") %>%
+  ggplot(aes(x = Week, y = p, color = Model)) +
+  geom_line() + 
+  geom_point(alpha = 0.8) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(start_week, 10)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) + 
+  labs(title = "Probability of reaching a given week with and without making optimal pick next week",
+       x = "Week number", 
+       y = "Pr(W < w)",
+       color = "Models") + 
+  theme_classic(10)
+
+# make table
+tbl <- cbind(first_pick[, 1:3], second_pick[, 2:3])
+avg_second <- mean(as.numeric(second_pick$p_win))
+sd_second <- sd(as.numeric(second_pick$p_win))
+
+avg_row <- data.frame("Mean", "", avg_2, "", avg_second)
+sd_row <- data.frame("SD", "", sd_2, "", sd_second)
+names(avg_row) <- names(tbl)
+names(sd_row) <- names(tbl)
+tbl <- rbind(tbl, avg_row, sd_row)
+
+kbl(tbl, digits=3) %>%
+  kable_classic(full_width=F) %>%
+  add_header_above(c(" " = 1, "Optimal Pick" = 2, "Next Best" = 2)) %>%
+  row_spec(nrow(tbl), bold=T) %>%
+  row_spec(nrow(tbl) - 1, bold=T)
+```
+
+The above analysis is not very supportive of not taking MIA in both picks next week. 
+This analysis is flawed, as we rule out the first pick in each week. 
 
