@@ -10,7 +10,7 @@ output:
 
 
 
-Our annual NFL losers pool runs by each enterant having to pick one team per week. 
+Our annual NFL losers pool runs by each entrant having to pick one team per week. 
 The objective is to pick one team to lose each week, if your team wins, you are 
 out of the pool. The catch is that once a team is picked it cannot be picked 
 again. 
@@ -261,6 +261,12 @@ As expected, we have better chances earlier when using a discount value less tha
 one for the Opportunity Cost model. Notice there is not much variation across 
 differing beta values. 
 
+
+```
+## Warning in merge.data.table(..., by = c("week"), all.x = TRUE): column names
+## 'loser.x', 'p_win.x', 'loser.y', 'p_win.y' are duplicated in the result
+```
+
 <table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
 <caption>Weekly Picks by Model</caption>
  <thead>
@@ -270,18 +276,9 @@ differing beta values.
 <th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">OC, Beta = 0.9</div></th>
 <th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">OC, Beta = 0.7</div></th>
 <th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">By Week</div></th>
-<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Prob, Beta = 1</div></th>
-<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Prob, Beta = 0.9</div></th>
-<th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Prob, Beta = 0.7</div></th>
 </tr>
   <tr>
    <th style="text-align:left;"> Week </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> ProbWin </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> ProbWin </th>
-   <th style="text-align:left;"> Team </th>
-   <th style="text-align:right;"> ProbWin </th>
    <th style="text-align:left;"> Team </th>
    <th style="text-align:right;"> ProbWin </th>
    <th style="text-align:left;"> Team </th>
@@ -303,21 +300,9 @@ differing beta values.
    <td style="text-align:right;"> 0.194 </td>
    <td style="text-align:left;"> MIA </td>
    <td style="text-align:right;"> 0.194 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.194 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.194 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.261 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 6 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
    <td style="text-align:left;"> WSH </td>
    <td style="text-align:right;"> 0.269 </td>
    <td style="text-align:left;"> WSH </td>
@@ -337,12 +322,6 @@ differing beta values.
    <td style="text-align:right;"> 0.131 </td>
    <td style="text-align:left;"> DET </td>
    <td style="text-align:right;"> 0.131 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
@@ -354,12 +333,6 @@ differing beta values.
    <td style="text-align:right;"> 0.189 </td>
    <td style="text-align:left;"> JAX </td>
    <td style="text-align:right;"> 0.154 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.154 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.154 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.163 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
@@ -369,12 +342,6 @@ differing beta values.
    <td style="text-align:right;"> 0.176 </td>
    <td style="text-align:left;"> JAX </td>
    <td style="text-align:right;"> 0.176 </td>
-   <td style="text-align:left;"> MIN </td>
-   <td style="text-align:right;"> 0.243 </td>
-   <td style="text-align:left;"> MIN </td>
-   <td style="text-align:right;"> 0.243 </td>
-   <td style="text-align:left;"> MIN </td>
-   <td style="text-align:right;"> 0.243 </td>
    <td style="text-align:left;"> MIN </td>
    <td style="text-align:right;"> 0.243 </td>
   </tr>
@@ -388,12 +355,6 @@ differing beta values.
    <td style="text-align:right;"> 0.218 </td>
    <td style="text-align:left;"> ATL </td>
    <td style="text-align:right;"> 0.218 </td>
-   <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.218 </td>
-   <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.218 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.199 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
@@ -405,12 +366,6 @@ differing beta values.
    <td style="text-align:right;font-weight: bold;"> 0.196 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.202 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.202 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.202 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.211 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
@@ -422,12 +377,6 @@ differing beta values.
    <td style="text-align:right;font-weight: bold;"> 0.046 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.052 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.052 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.052 </td>
-   <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.056 </td>
   </tr>
 </tbody>
 </table>
@@ -456,6 +405,7 @@ This is done so I can consider picking two different teams per week to hedge my
 bets. 
 
 ![](README_figs/README-unnamed-chunk-10-1.png)<!-- -->![](README_figs/README-unnamed-chunk-10-2.png)<!-- --><table class=" lightable-classic" style='font-family: "Arial Narrow", "Source Sans Pro", sans-serif; width: auto !important; margin-left: auto; margin-right: auto;'>
+<caption>Recommended sets of picks</caption>
  <thead>
 <tr>
 <th style="empty-cells: hide;" colspan="1"></th>
@@ -463,11 +413,11 @@ bets.
 <th style="padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #111111; margin-bottom: -1px; ">Next Best</div></th>
 </tr>
   <tr>
-   <th style="text-align:left;"> week </th>
-   <th style="text-align:left;"> loser </th>
-   <th style="text-align:right;"> p_win </th>
-   <th style="text-align:left;"> loser </th>
-   <th style="text-align:right;"> p_win </th>
+   <th style="text-align:left;"> Week </th>
+   <th style="text-align:left;"> Pick </th>
+   <th style="text-align:right;"> ProbWin </th>
+   <th style="text-align:left;"> Pick </th>
+   <th style="text-align:right;"> ProbWin </th>
   </tr>
  </thead>
 <tbody>
@@ -530,10 +480,12 @@ bets.
 </tbody>
 </table>
 
+
+### Showing pick profiles on choice set
+![](README_figs/README-unnamed-chunk-11-1.png)<!-- -->
 The above analysis is not very supportive of not taking MIA in both picks next week. 
 This analysis is flawed, as we rule out the first pick in each week. 
 
 ## Todos
-* Allow first few plots to contain all the data
-* Make the choice plot with paths of optimal picks
+* Make the choice plot with paths of optimal picks include picks from first N weeks.
 

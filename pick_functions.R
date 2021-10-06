@@ -1,4 +1,4 @@
-read_data <- function(path){
+read_data <- function(path, all_weeks = FALSE){
   dt <- data.table::fread(path)
   
   # calculate week, get proj loser and prob of loss. 
@@ -11,9 +11,10 @@ read_data <- function(path){
   
   dt <- dt[, .(week, loser, winner, p_win, p_win_winner)]
   
-  dt <- dt[week %in% time_period]
-
-  dt <- dt[!loser %in% past_picks]
+  if(!all_weeks){
+    dt <- dt[week %in% time_period]
+    dt <- dt[!loser %in% past_picks]
+  }
   
   return(dt)
 }
