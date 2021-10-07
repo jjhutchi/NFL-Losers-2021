@@ -37,7 +37,7 @@ week1 <- as.Date("2021-09-09")
 total_weeks <- 10
 start_week <- max(ceiling(as.numeric(( Sys.Date() - as.Date("2021-09-09") )) / 7) + 1, 3) # little janky
 time_period <- c(start_week:total_weeks)
-past_picks <- c("CHI", "TEN", "NYJ", "HOU")
+past_picks <- c("DAL", "TEN", "NYJ", "HOU") # alternate with CHI, and DAL
 past_weeks <- c(1, 2, 3, 4)
 
 dt <- read_data(path, all_weeks = FALSE)
@@ -447,4 +447,5 @@ This analysis is flawed, as we rule out the first pick in each week.
 
 ## Todos
 * Make the choice plot with paths of optimal picks include picks from first N weeks.
+* Make two sets of past picks for each stream of picks
 

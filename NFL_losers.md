@@ -425,8 +425,8 @@ bets.
    <td style="text-align:left;"> 5 </td>
    <td style="text-align:left;"> MIA </td>
    <td style="text-align:right;"> 0.194 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.261 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.214 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 6 </td>
@@ -439,8 +439,8 @@ bets.
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> DET </td>
    <td style="text-align:right;"> 0.131 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
+   <td style="text-align:left;"> CHI </td>
+   <td style="text-align:right;"> 0.163 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
@@ -468,14 +468,14 @@ bets.
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.196 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.203 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.200 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
    <td style="text-align:right;font-weight: bold;"> 0.046 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.055 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.041 </td>
   </tr>
 </tbody>
 </table>
@@ -488,4 +488,5 @@ This analysis is flawed, as we rule out the first pick in each week.
 
 ## Todos
 * Make the choice plot with paths of optimal picks include picks from first N weeks.
+* Make two sets of past picks for each stream of picks
 
