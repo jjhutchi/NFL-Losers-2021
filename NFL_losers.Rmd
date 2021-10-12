@@ -37,8 +37,8 @@ week1 <- as.Date("2021-09-09")
 total_weeks <- 10
 start_week <- max(ceiling(as.numeric(( Sys.Date() - as.Date("2021-09-09") )) / 7) + 1, 3) # little janky
 time_period <- c(start_week:total_weeks)
-past_picks <- c("DAL", "TEN", "NYJ", "HOU") # alternate with CHI, and DAL
-past_weeks <- c(1, 2, 3, 4)
+past_picks <- c("DAL", "TEN", "NYJ", "HOU", "MIA") # alternate with CHI, and DAL
+past_weeks <- c(1, 2, 3, 4, 5)
 
 dt <- read_data(path, all_weeks = FALSE)
 ```
@@ -449,3 +449,78 @@ This analysis is flawed, as we rule out the first pick in each week.
 * Make the choice plot with paths of optimal picks include picks from first N weeks.
 * Make two sets of past picks for each stream of picks
 
+
+## Looking back at ELO's performance
+This section is a look back at the first 5 weeks of NFL projections. I am curious how 
+well the forecasts are performing, and plan to plot the estimated win rate against the 
+actual bserved win rate. In order to do this, I will be bucketing the probabilities into 
+N discrete groups, then comuting the win percentage per group. Ideally plotting the 
+forecast win rate against actual win rates should provide a 45 degree line. 
+
+```{r}
+# get data for all weeks
+dt <- data.table::fread(path)
+dt[, loser:=ifelse(qbelo_prob1 > qbelo_prob2, team2, team1)]
+dt[, winner:=ifelse(qbelo_prob1 > qbelo_prob2, team1, team2)]
+dt[, loser_score:=ifelse(qbelo_prob1 > qbelo_prob2, score2, score1)]
+dt[, winner_score:=ifelse(qbelo_prob1 > qbelo_prob2, score1, score2)]
+dt[, p_win:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)]
+dt[, p_win_winner:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob1, qbelo_prob2)]
+dt[, week:=floor(as.numeric(difftime(date, week1, units="days")) / 7) + 1]
+dt <- dt[!is.na(winner_score), ]
+dt[, win:= as.numeric(winner_score > loser_score)]
+dt[, win_bucket:= round(p_win_winner, 1)]
+dt <- dt[, .(win, win_bucket)]
+
+dt %>%
+  group_by(win_bucket) %>%
+  summarize(p = mean(win), 
+            n = n()) %>%
+  ggplot(aes(x = win_bucket, y = p)) + 
+  geom_point() + 
+  geom_abline(slope = 1, linetype = "dotted") + 
+  xlim(0, 1) + 
+  ylim(0, 1) + 
+  labs(title = "Weeks 1 - 5, actual versus observed outcomes", 
+       x = "Forecasted win rate", 
+       y = "Observed win rate") + 
+  theme_bw()
+```
+
+### repeat on historical data
+
+```{r}
+hist_data <- "https://projects.fivethirtyeight.com/nfl-api/nfl_elo.csv"
+hdt <- fread(hist_data)
+
+hdt %>%
+  group_by(season) %>%
+  summarise(sum(is.na(qbelo_prob1))) # begins in 1950
+
+# clean data 
+hdt[, loser:=ifelse(qbelo_prob1 > qbelo_prob2, team2, team1)]
+hdt[, winner:=ifelse(qbelo_prob1 > qbelo_prob2, team1, team2)]
+hdt[, loser_score:=ifelse(qbelo_prob1 > qbelo_prob2, score2, score1)]
+hdt[, winner_score:=ifelse(qbelo_prob1 > qbelo_prob2, score1, score2)]
+hdt[, p_win:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)]
+hdt[, p_win_winner:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob1, qbelo_prob2)]
+hdt <- hdt[!is.na(winner_score), ]
+hdt[, win:= as.numeric(winner_score > loser_score)]
+hdt[, win_bucket:= round(p_win_winner, 1)]
+
+hdt <- hdt[, .(win, win_bucket, season)]
+
+hdt %>%
+  # filter(season >= 2000) %>%
+  group_by(win_bucket) %>%
+  summarise(p = mean(win), n = n(), se = sd(win)) %>%
+  ggplot(aes(x = win_bucket, y = p)) + 
+  geom_errorbar(aes(x = win_bucket, ymin = p - 1.65*se, ymax = p + 1.65*se)) + 
+  geom_point() + 
+  geom_abline(slope = 1) + 
+  labs(title = "Historical game - favourite win rates", 
+       x = "Forecasted win rate", 
+       y = "Observed win rate") + 
+  theme_bw()
+
+```

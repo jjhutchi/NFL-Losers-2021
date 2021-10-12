@@ -81,15 +81,6 @@ moving from the naiive approaches to Approach 3.
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;"> 5 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.194 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.194 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.194 </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> 6 </td>
    <td style="text-align:left;"> WSH </td>
    <td style="text-align:right;"> 0.269 </td>
@@ -101,27 +92,27 @@ moving from the naiive approaches to Approach 3.
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
+   <td style="text-align:right;"> 0.115 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
+   <td style="text-align:right;"> 0.115 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
+   <td style="text-align:right;"> 0.115 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.154 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.154 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.189 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.163 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.163 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.163 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
-   <td style="text-align:left;"> MIN </td>
-   <td style="text-align:right;"> 0.243 </td>
-   <td style="text-align:left;"> MIN </td>
-   <td style="text-align:right;"> 0.243 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.176 </td>
    <td style="text-align:left;"> JAX </td>
    <td style="text-align:right;"> 0.176 </td>
   </tr>
@@ -137,20 +128,20 @@ moving from the naiive approaches to Approach 3.
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.202 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.202 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.196 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.052 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.052 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.046 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
   </tr>
 </tbody>
 </table>
@@ -190,64 +181,54 @@ $$ Pr(W \leq w) = \Pi_{i = 1}^w (1 - Pr(w_i))  $$
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:right;"> 5 </td>
-   <td style="text-align:right;"> 0.81 </td>
-   <td style="text-align:right;"> 0.81 </td>
-   <td style="text-align:right;"> 0.81 </td>
-   <td style="text-align:right;"> 0.81 </td>
-   <td style="text-align:right;"> 0.81 </td>
-   <td style="text-align:right;"> 0.74 </td>
-   <td style="text-align:right;"> 0.81 </td>
-  </tr>
-  <tr>
    <td style="text-align:right;"> 6 </td>
-   <td style="text-align:right;"> 0.59 </td>
-   <td style="text-align:right;"> 0.59 </td>
-   <td style="text-align:right;"> 0.59 </td>
-   <td style="text-align:right;"> 0.59 </td>
-   <td style="text-align:right;"> 0.59 </td>
-   <td style="text-align:right;"> 0.54 </td>
-   <td style="text-align:right;"> 0.59 </td>
+   <td style="text-align:right;"> 0.73 </td>
+   <td style="text-align:right;"> 0.73 </td>
+   <td style="text-align:right;"> 0.73 </td>
+   <td style="text-align:right;"> 0.73 </td>
+   <td style="text-align:right;"> 0.73 </td>
+   <td style="text-align:right;"> 0.73 </td>
+   <td style="text-align:right;"> 0.73 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 7 </td>
-   <td style="text-align:right;"> 0.51 </td>
-   <td style="text-align:right;"> 0.51 </td>
-   <td style="text-align:right;"> 0.51 </td>
-   <td style="text-align:right;"> 0.51 </td>
-   <td style="text-align:right;"> 0.51 </td>
-   <td style="text-align:right;"> 0.47 </td>
-   <td style="text-align:right;"> 0.51 </td>
+   <td style="text-align:right;"> 0.65 </td>
+   <td style="text-align:right;"> 0.65 </td>
+   <td style="text-align:right;"> 0.65 </td>
+   <td style="text-align:right;"> 0.65 </td>
+   <td style="text-align:right;"> 0.65 </td>
+   <td style="text-align:right;"> 0.65 </td>
+   <td style="text-align:right;"> 0.65 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 8 </td>
-   <td style="text-align:right;"> 0.42 </td>
-   <td style="text-align:right;"> 0.42 </td>
-   <td style="text-align:right;"> 0.42 </td>
-   <td style="text-align:right;"> 0.43 </td>
-   <td style="text-align:right;"> 0.43 </td>
-   <td style="text-align:right;"> 0.39 </td>
-   <td style="text-align:right;"> 0.43 </td>
+   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.54 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 9 </td>
-   <td style="text-align:right;"> 0.34 </td>
-   <td style="text-align:right;"> 0.34 </td>
-   <td style="text-align:right;"> 0.34 </td>
-   <td style="text-align:right;"> 0.33 </td>
-   <td style="text-align:right;"> 0.33 </td>
-   <td style="text-align:right;"> 0.30 </td>
-   <td style="text-align:right;"> 0.33 </td>
+   <td style="text-align:right;"> 0.45 </td>
+   <td style="text-align:right;"> 0.45 </td>
+   <td style="text-align:right;"> 0.45 </td>
+   <td style="text-align:right;"> 0.45 </td>
+   <td style="text-align:right;"> 0.45 </td>
+   <td style="text-align:right;"> 0.41 </td>
+   <td style="text-align:right;"> 0.45 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 0.27 </td>
-   <td style="text-align:right;"> 0.27 </td>
-   <td style="text-align:right;"> 0.27 </td>
-   <td style="text-align:right;"> 0.26 </td>
-   <td style="text-align:right;"> 0.26 </td>
-   <td style="text-align:right;"> 0.24 </td>
-   <td style="text-align:right;"> 0.26 </td>
+   <td style="text-align:right;"> 0.35 </td>
+   <td style="text-align:right;"> 0.35 </td>
+   <td style="text-align:right;"> 0.35 </td>
+   <td style="text-align:right;"> 0.35 </td>
+   <td style="text-align:right;"> 0.35 </td>
+   <td style="text-align:right;"> 0.33 </td>
+   <td style="text-align:right;"> 0.35 </td>
   </tr>
 </tbody>
 <tfoot>
@@ -291,17 +272,6 @@ differing beta values.
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;"> 5 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.194 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.194 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.194 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.194 </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> 6 </td>
    <td style="text-align:left;"> WSH </td>
    <td style="text-align:right;"> 0.269 </td>
@@ -315,24 +285,24 @@ differing beta values.
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
+   <td style="text-align:right;"> 0.115 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
+   <td style="text-align:right;"> 0.115 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
+   <td style="text-align:right;"> 0.115 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
+   <td style="text-align:right;"> 0.115 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.189 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.189 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.189 </td>
-   <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.154 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.163 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.163 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.163 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.163 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
@@ -342,8 +312,8 @@ differing beta values.
    <td style="text-align:right;"> 0.176 </td>
    <td style="text-align:left;"> JAX </td>
    <td style="text-align:right;"> 0.176 </td>
-   <td style="text-align:left;"> MIN </td>
-   <td style="text-align:right;"> 0.243 </td>
+   <td style="text-align:left;"> JAX </td>
+   <td style="text-align:right;"> 0.176 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 10 </td>
@@ -359,24 +329,24 @@ differing beta values.
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.196 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.196 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.196 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.202 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.046 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.046 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.046 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.052 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
   </tr>
 </tbody>
 </table>
@@ -422,30 +392,23 @@ bets.
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;"> 5 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.194 </td>
-   <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.214 </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> 6 </td>
    <td style="text-align:left;"> WSH </td>
    <td style="text-align:right;"> 0.269 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.296 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.131 </td>
-   <td style="text-align:left;"> CHI </td>
-   <td style="text-align:right;"> 0.163 </td>
+   <td style="text-align:right;"> 0.115 </td>
+   <td style="text-align:left;"> DET </td>
+   <td style="text-align:right;"> 0.115 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
-   <td style="text-align:left;"> NYG </td>
-   <td style="text-align:right;"> 0.189 </td>
+   <td style="text-align:left;"> MIA </td>
+   <td style="text-align:right;"> 0.163 </td>
    <td style="text-align:left;"> MIA </td>
    <td style="text-align:right;"> 0.163 </td>
   </tr>
@@ -466,16 +429,16 @@ bets.
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.196 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.200 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.194 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.046 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.041 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.068 </td>
   </tr>
 </tbody>
 </table>
