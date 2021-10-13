@@ -24,6 +24,12 @@ Download and use the NFL forecast data from
 [FiveThirtyEight](https://projects.fivethirtyeight.com/2021-nfl-predictions/games/) 
 to optimize my picks to give the best probability of lasting deep into the season. 
 
+## TODOs: 
+1. Clean code to provide some viz, then do analysis
+2. Separate entry 1 and entry 2 picks
+3. Consider the number of weeks with the number of remaining players - 
+   how many weeks out should I include?
+
 ```{r, echo = FALSE}
 
 #TODO: Update the code to handle future weeks.
@@ -37,10 +43,12 @@ week1 <- as.Date("2021-09-09")
 total_weeks <- 10
 start_week <- max(ceiling(as.numeric(( Sys.Date() - as.Date("2021-09-09") )) / 7) + 1, 3) # little janky
 time_period <- c(start_week:total_weeks)
+
+# past picks ----
 past_picks <- c("DAL", "TEN", "NYJ", "HOU", "MIA") # alternate with CHI, and DAL
 past_weeks <- c(1, 2, 3, 4, 5)
 
-dt <- read_data(path, all_weeks = FALSE)
+dt1 <- read_data(path, past_picks, all_weeks = FALSE)
 ```
 
 ## Visualizations 
@@ -111,14 +119,13 @@ filled with the set picks I made. We can see there is a slight improvement when
 moving from the naiive approaches to Approach 3.
 
 ```{r, echo = FALSE}
-wk <- by_week(past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
-pr <- by_prob(past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
-oc <- by_oc(past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
+wk <- by_week(dt, past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
+pr <- by_prob(dt, past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
+oc <- by_oc(dt, past_picks, past_weeks, beta = 1, start_week = start_week, total_weeks = total_weeks)
 
-tbl <- left_join(wk, pr, by="week")
-tbl <- left_join(tbl, oc, by="week")
-names <- c("Week", rep(c("Team", "ProbWin"), 3))
-names(tbl) <- names
+tbl <- Reduce(function(...) merge(..., all = TRUE, by = "week"),
+               list(wk, pr, oc))
+names(tbl) <- c("Week", rep(c("Team", "ProbWin"), 3))
 
 avg_1 <- mean(as.numeric(wk$p_win))
 avg_2 <- mean(as.numeric(pr$p_win))
@@ -126,16 +133,13 @@ avg_3 <- mean(as.numeric(oc$p_win))
 avg_row <- data.frame("Mean", "", avg_1, "", avg_2, "", avg_3)
 names(avg_row) <- names(tbl)
 
-
 sd_1 <- sd(as.numeric(wk$p_win))
 sd_2 <- sd(as.numeric(pr$p_win))
 sd_3 <- sd(as.numeric(oc$p_win))
 sd_row <- data.frame("SD", "", sd_1, "", sd_2, "", sd_3)
 names(sd_row) <- names(tbl)
 
-
-tbl <- rbind(tbl, avg_row)
-tbl <- rbind(tbl, sd_row)
+tbl <- rbind(tbl, avg_row, sd_row)
 
 kbl(tbl, digits=3, caption = "Comparison of approaches") %>%
   kable_classic(full_width=F) %>%
@@ -178,10 +182,10 @@ cumprob <- function(picks, inc_weeks = FALSE){
   out
 }
 
-oc9 <- by_oc(past_picks, past_weeks, beta = 0.9)
-oc7 <- by_oc(past_picks, past_weeks, beta = 0.7)
-pr9 <- by_prob(past_picks, past_weeks, beta = 0.9)
-pr7 <- by_prob(past_picks, past_weeks, beta = 0.7)
+oc9 <- by_oc(dt, past_picks, past_weeks, beta = 0.9)
+oc7 <- by_oc(dt, past_picks, past_weeks, beta = 0.7)
+pr9 <- by_prob(dt, past_picks, past_weeks, beta = 0.9)
+pr7 <- by_prob(dt, past_picks, past_weeks, beta = 0.7)
 
 results <- list()
 models <- list(oc, oc9, oc7, pr, pr9, pr7, wk)
@@ -301,30 +305,6 @@ ggplot(data, aes(x=Week, y=ProbWin, color = Approach, shape = Approach)) +
   labs(title = "Comparing weekly win probabilities per Approach", 
        x = "Week Number", 
        y = "Win Probability") + 
-  theme_classic(12)
-```
-
-## Alterative weeks for optimal team picks
-We can view other weeks of the recommended team below in a selection plot. 
-Here the only alternative to picking HOU comes in the By Prob, Beta = 0.7 model 
-which selects PIT. However, it is clear there is no future gain from this pick.
-
-```{r, echo = FALSE}
-#TODO: maybe look to other possibilities - like second best pick from the models. 
-# this may be mroe complicated and require its own code block. 
-dt %>% 
-  filter(!week %in% past_weeks, 
-         !loser %in% past_picks) %>%
-  group_by(week, loser) %>%
-  mutate(suggested = ifelse(loser == oc9[1, "Team"] | loser == pr7[1, "loser"] , loser, "The rest")) %>%
-  ggplot() + 
-  geom_point(aes(x=week, y=p_win, color = suggested), alpha=0.6, size = 3) + 
-  coord_flip() + 
-  labs(title = "Top two recomendations by week", 
-       x = "Week Number", 
-       y = "Win Probability", 
-       color = "Recommended pick") + 
-  scale_color_viridis_d() + 
   theme_classic(12)
 ```
 
@@ -506,7 +486,7 @@ hdt[, p_win:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)]
 hdt[, p_win_winner:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob1, qbelo_prob2)]
 hdt <- hdt[!is.na(winner_score), ]
 hdt[, win:= as.numeric(winner_score > loser_score)]
-hdt[, win_bucket:= round(p_win_winner, 1)]
+hdt[, win_bucket:= round(p_win_winner, 2)]
 
 hdt <- hdt[, .(win, win_bucket, season)]
 
@@ -515,10 +495,12 @@ hdt %>%
   group_by(win_bucket) %>%
   summarise(p = mean(win), n = n(), se = sd(win)) %>%
   ggplot(aes(x = win_bucket, y = p)) + 
-  geom_errorbar(aes(x = win_bucket, ymin = p - 1.65*se, ymax = p + 1.65*se)) + 
   geom_point() + 
+  geom_smooth(alpha = 0.7, linetype = "dashed", se=F) + 
   geom_abline(slope = 1) + 
-  labs(title = "Historical game - favourite win rates", 
+  annotate("text", x = 0.5, y = 0.49, label = "y = x", hjust = 0) + 
+  annotate("text", x = 0.5, y = 0.6, label = "Line of \nbest fit", hjust = 0, color = "blue") + 
+  labs(title = "The historical oucome observation lines up well with the projected outcomes", 
        x = "Forecasted win rate", 
        y = "Observed win rate") + 
   theme_bw()

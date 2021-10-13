@@ -20,6 +20,12 @@ Download and use the NFL forecast data from
 [FiveThirtyEight](https://projects.fivethirtyeight.com/2021-nfl-predictions/games/) 
 to optimize my picks to give the best probability of lasting deep into the season. 
 
+## TODOs: 
+1. Clean code to provide some viz, then do analysis
+2. Separate entry 1 and entry 2 picks
+3. Consider the number of weeks with the number of remaining players - 
+   how many weeks out should I include?
+
 
 
 ## Visualizations 
@@ -82,66 +88,66 @@ moving from the naiive approaches to Approach 3.
 <tbody>
   <tr>
    <td style="text-align:left;"> 6 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.290 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.290 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.290 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.115 </td>
+   <td style="text-align:right;"> 0.107 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.115 </td>
+   <td style="text-align:right;"> 0.107 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.115 </td>
+   <td style="text-align:right;"> 0.107 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.163 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.163 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.163 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.202 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:right;"> 0.134 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:right;"> 0.134 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:right;"> 0.134 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 10 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.218 </td>
+   <td style="text-align:right;"> 0.229 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.218 </td>
+   <td style="text-align:right;"> 0.229 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.218 </td>
+   <td style="text-align:right;"> 0.229 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.193 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.193 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.193 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.074 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.074 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.074 </td>
   </tr>
 </tbody>
 </table>
@@ -182,53 +188,53 @@ $$ Pr(W \leq w) = \Pi_{i = 1}^w (1 - Pr(w_i))  $$
 <tbody>
   <tr>
    <td style="text-align:right;"> 6 </td>
-   <td style="text-align:right;"> 0.73 </td>
-   <td style="text-align:right;"> 0.73 </td>
-   <td style="text-align:right;"> 0.73 </td>
-   <td style="text-align:right;"> 0.73 </td>
-   <td style="text-align:right;"> 0.73 </td>
-   <td style="text-align:right;"> 0.73 </td>
-   <td style="text-align:right;"> 0.73 </td>
+   <td style="text-align:right;"> 0.71 </td>
+   <td style="text-align:right;"> 0.71 </td>
+   <td style="text-align:right;"> 0.71 </td>
+   <td style="text-align:right;"> 0.71 </td>
+   <td style="text-align:right;"> 0.71 </td>
+   <td style="text-align:right;"> 0.71 </td>
+   <td style="text-align:right;"> 0.71 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 7 </td>
-   <td style="text-align:right;"> 0.65 </td>
-   <td style="text-align:right;"> 0.65 </td>
-   <td style="text-align:right;"> 0.65 </td>
-   <td style="text-align:right;"> 0.65 </td>
-   <td style="text-align:right;"> 0.65 </td>
-   <td style="text-align:right;"> 0.65 </td>
-   <td style="text-align:right;"> 0.65 </td>
+   <td style="text-align:right;"> 0.63 </td>
+   <td style="text-align:right;"> 0.63 </td>
+   <td style="text-align:right;"> 0.63 </td>
+   <td style="text-align:right;"> 0.63 </td>
+   <td style="text-align:right;"> 0.63 </td>
+   <td style="text-align:right;"> 0.63 </td>
+   <td style="text-align:right;"> 0.63 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 8 </td>
-   <td style="text-align:right;"> 0.54 </td>
-   <td style="text-align:right;"> 0.54 </td>
-   <td style="text-align:right;"> 0.54 </td>
-   <td style="text-align:right;"> 0.54 </td>
-   <td style="text-align:right;"> 0.54 </td>
-   <td style="text-align:right;"> 0.54 </td>
-   <td style="text-align:right;"> 0.54 </td>
+   <td style="text-align:right;"> 0.51 </td>
+   <td style="text-align:right;"> 0.51 </td>
+   <td style="text-align:right;"> 0.51 </td>
+   <td style="text-align:right;"> 0.51 </td>
+   <td style="text-align:right;"> 0.51 </td>
+   <td style="text-align:right;"> 0.51 </td>
+   <td style="text-align:right;"> 0.51 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 9 </td>
-   <td style="text-align:right;"> 0.45 </td>
-   <td style="text-align:right;"> 0.45 </td>
-   <td style="text-align:right;"> 0.45 </td>
-   <td style="text-align:right;"> 0.45 </td>
-   <td style="text-align:right;"> 0.45 </td>
-   <td style="text-align:right;"> 0.41 </td>
-   <td style="text-align:right;"> 0.45 </td>
+   <td style="text-align:right;"> 0.44 </td>
+   <td style="text-align:right;"> 0.44 </td>
+   <td style="text-align:right;"> 0.44 </td>
+   <td style="text-align:right;"> 0.44 </td>
+   <td style="text-align:right;"> 0.44 </td>
+   <td style="text-align:right;"> 0.40 </td>
+   <td style="text-align:right;"> 0.44 </td>
   </tr>
   <tr>
    <td style="text-align:right;"> 10 </td>
-   <td style="text-align:right;"> 0.35 </td>
-   <td style="text-align:right;"> 0.35 </td>
-   <td style="text-align:right;"> 0.35 </td>
-   <td style="text-align:right;"> 0.35 </td>
-   <td style="text-align:right;"> 0.35 </td>
-   <td style="text-align:right;"> 0.33 </td>
-   <td style="text-align:right;"> 0.35 </td>
+   <td style="text-align:right;"> 0.34 </td>
+   <td style="text-align:right;"> 0.34 </td>
+   <td style="text-align:right;"> 0.34 </td>
+   <td style="text-align:right;"> 0.34 </td>
+   <td style="text-align:right;"> 0.34 </td>
+   <td style="text-align:right;"> 0.32 </td>
+   <td style="text-align:right;"> 0.34 </td>
   </tr>
 </tbody>
 <tfoot>
@@ -273,80 +279,80 @@ differing beta values.
 <tbody>
   <tr>
    <td style="text-align:left;"> 6 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.290 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.290 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.290 </td>
+   <td style="text-align:left;"> PHI </td>
+   <td style="text-align:right;"> 0.290 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.115 </td>
+   <td style="text-align:right;"> 0.107 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.115 </td>
+   <td style="text-align:right;"> 0.107 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.115 </td>
+   <td style="text-align:right;"> 0.107 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.115 </td>
+   <td style="text-align:right;"> 0.107 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.163 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.163 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.163 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.163 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.202 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:right;"> 0.134 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:right;"> 0.134 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:right;"> 0.134 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:right;"> 0.134 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 10 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.218 </td>
+   <td style="text-align:right;"> 0.229 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.218 </td>
+   <td style="text-align:right;"> 0.229 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.218 </td>
+   <td style="text-align:right;"> 0.229 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.218 </td>
+   <td style="text-align:right;"> 0.229 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.193 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.193 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.193 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.193 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.074 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.074 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.074 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.074 </td>
   </tr>
 </tbody>
 </table>
@@ -393,52 +399,52 @@ bets.
 <tbody>
   <tr>
    <td style="text-align:left;"> 6 </td>
-   <td style="text-align:left;"> WSH </td>
-   <td style="text-align:right;"> 0.269 </td>
    <td style="text-align:left;"> PHI </td>
-   <td style="text-align:right;"> 0.296 </td>
+   <td style="text-align:right;"> 0.290 </td>
+   <td style="text-align:left;"> WSH </td>
+   <td style="text-align:right;"> 0.292 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 7 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.115 </td>
+   <td style="text-align:right;"> 0.107 </td>
    <td style="text-align:left;"> DET </td>
-   <td style="text-align:right;"> 0.115 </td>
+   <td style="text-align:right;"> 0.107 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 8 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.163 </td>
-   <td style="text-align:left;"> MIA </td>
-   <td style="text-align:right;"> 0.163 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.202 </td>
+   <td style="text-align:left;"> NYG </td>
+   <td style="text-align:right;"> 0.202 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 9 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:right;"> 0.134 </td>
    <td style="text-align:left;"> JAX </td>
-   <td style="text-align:right;"> 0.176 </td>
+   <td style="text-align:right;"> 0.134 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 10 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.218 </td>
+   <td style="text-align:right;"> 0.229 </td>
    <td style="text-align:left;"> ATL </td>
-   <td style="text-align:right;"> 0.218 </td>
+   <td style="text-align:right;"> 0.229 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> Mean </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.188 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.193 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.194 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.193 </td>
   </tr>
   <tr>
    <td style="text-align:left;font-weight: bold;"> SD </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.058 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.074 </td>
    <td style="text-align:left;font-weight: bold;">  </td>
-   <td style="text-align:right;font-weight: bold;"> 0.068 </td>
+   <td style="text-align:right;font-weight: bold;"> 0.074 </td>
   </tr>
 </tbody>
 </table>
@@ -453,3 +459,102 @@ This analysis is flawed, as we rule out the first pick in each week.
 * Make the choice plot with paths of optimal picks include picks from first N weeks.
 * Make two sets of past picks for each stream of picks
 
+
+## Looking back at ELO's performance
+This section is a look back at the first 5 weeks of NFL projections. I am curious how 
+well the forecasts are performing, and plan to plot the estimated win rate against the 
+actual bserved win rate. In order to do this, I will be bucketing the probabilities into 
+N discrete groups, then comuting the win percentage per group. Ideally plotting the 
+forecast win rate against actual win rates should provide a 45 degree line. 
+
+
+```r
+# get data for all weeks
+dt <- data.table::fread(path)
+dt[, loser:=ifelse(qbelo_prob1 > qbelo_prob2, team2, team1)]
+dt[, winner:=ifelse(qbelo_prob1 > qbelo_prob2, team1, team2)]
+dt[, loser_score:=ifelse(qbelo_prob1 > qbelo_prob2, score2, score1)]
+dt[, winner_score:=ifelse(qbelo_prob1 > qbelo_prob2, score1, score2)]
+dt[, p_win:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)]
+dt[, p_win_winner:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob1, qbelo_prob2)]
+dt[, week:=floor(as.numeric(difftime(date, week1, units="days")) / 7) + 1]
+dt <- dt[!is.na(winner_score), ]
+dt[, win:= as.numeric(winner_score > loser_score)]
+dt[, win_bucket:= round(p_win_winner, 1)]
+dt <- dt[, .(win, win_bucket)]
+
+dt %>%
+  group_by(win_bucket) %>%
+  summarize(p = mean(win), 
+            n = n()) %>%
+  ggplot(aes(x = win_bucket, y = p)) + 
+  geom_point() + 
+  geom_abline(slope = 1, linetype = "dotted") + 
+  xlim(0, 1) + 
+  ylim(0, 1) + 
+  labs(title = "Weeks 1 - 5, actual versus observed outcomes", 
+       x = "Forecasted win rate", 
+       y = "Observed win rate") + 
+  theme_bw()
+```
+
+![](README_figs/README-unnamed-chunk-12-1.png)<!-- -->
+
+### repeat on historical data
+
+
+```r
+hist_data <- "https://projects.fivethirtyeight.com/nfl-api/nfl_elo.csv"
+hdt <- fread(hist_data)
+
+hdt %>%
+  group_by(season) %>%
+  summarise(sum(is.na(qbelo_prob1))) # begins in 1950
+```
+
+```
+## # A tibble: 102 × 2
+##    season `sum(is.na(qbelo_prob1))`
+##     <int>                     <int>
+##  1   1920                        90
+##  2   1921                        66
+##  3   1922                        74
+##  4   1923                        88
+##  5   1924                        80
+##  6   1925                       104
+##  7   1926                       116
+##  8   1927                        72
+##  9   1928                        56
+## 10   1929                        70
+## # … with 92 more rows
+```
+
+```r
+# clean data 
+hdt[, loser:=ifelse(qbelo_prob1 > qbelo_prob2, team2, team1)]
+hdt[, winner:=ifelse(qbelo_prob1 > qbelo_prob2, team1, team2)]
+hdt[, loser_score:=ifelse(qbelo_prob1 > qbelo_prob2, score2, score1)]
+hdt[, winner_score:=ifelse(qbelo_prob1 > qbelo_prob2, score1, score2)]
+hdt[, p_win:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob2, qbelo_prob1)]
+hdt[, p_win_winner:=ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob1, qbelo_prob2)]
+hdt <- hdt[!is.na(winner_score), ]
+hdt[, win:= as.numeric(winner_score > loser_score)]
+hdt[, win_bucket:= round(p_win_winner, 1)]
+
+hdt <- hdt[, .(win, win_bucket, season)]
+
+hdt %>%
+  # filter(season >= 2000) %>%
+  group_by(win_bucket) %>%
+  summarise(p = mean(win), n = n(), se = sd(win)) %>%
+  ggplot(aes(x = win_bucket, y = p)) + 
+  geom_errorbar(aes(x = win_bucket, ymin = p - 1.65*se, ymax = p + 1.65*se)) + 
+  geom_point() + 
+  geom_abline(slope = 1) + 
+  labs(title = "Historical game - favourite win rates", 
+       x = "Forecasted win rate", 
+       y = "Observed win rate") + 
+  theme_bw()
+```
+
+![](README_figs/README-unnamed-chunk-13-1.png)<!-- -->

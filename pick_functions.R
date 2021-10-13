@@ -1,4 +1,4 @@
-read_data <- function(path, all_weeks = FALSE){
+read_data <- function(path, past_picks, all_weeks = FALSE){
   dt <- data.table::fread(path)
   
   # calculate week, get proj loser and prob of loss. 
@@ -28,8 +28,7 @@ join_picks <- function(past_weeks, past_picks){
   return(picks)
 }
 
-by_week <- function(past_picks, past_weeks, start_week = 3, total_weeks = 13, beta = 1){
-  
+by_week <- function(dt, past_picks, past_weeks, start_week = 3, total_weeks = 13, beta = 1){
   # loop through filling in each week
   for(i in start_week:total_weeks){
     pick <- dt[!loser %in% past_picks & week == i]
@@ -47,7 +46,7 @@ by_week <- function(past_picks, past_weeks, start_week = 3, total_weeks = 13, be
   return(picks)
 }
 
-by_prob <- function(past_picks, past_weeks, start_week = 3, total_weeks = 13, beta = 1){
+by_prob <- function(dt, past_picks, past_weeks, start_week = 3, total_weeks = 13, beta = 1){
   
   for(i in start_week:total_weeks){
     
@@ -67,7 +66,7 @@ by_prob <- function(past_picks, past_weeks, start_week = 3, total_weeks = 13, be
   return(picks)
 }
 
-by_oc <- function(past_picks, past_weeks, start_week = 3, total_weeks = 13, beta = 1){
+by_oc <- function(dt, past_picks, past_weeks, start_week = 3, total_weeks = 13, beta = 1){
   
   for(i in start_week:total_weeks){
     
