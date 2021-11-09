@@ -1,5 +1,10 @@
 ---
 title: "NFL Losers Pool 2021 Optimal Pick Algorithm"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: "Jordan Hutchings"
 date: "08/11/2021"
 output: html_document
@@ -8,9 +13,6 @@ output: html_document
 ```{r, echo = FALSE}
 # setup ----
 pacman::p_load(dplyr, ggplot2, kableExtra, data.table)
-
-
-
 ```
 
 I've joined my buddies annual NFL Losers Pool, and while I spend much less time 
