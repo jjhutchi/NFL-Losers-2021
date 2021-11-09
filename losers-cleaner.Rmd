@@ -25,19 +25,19 @@ to optimize my picks to give the best probability of lasting deep into the seaso
 
 ```{r}
 source("pick_functions.R")
-pacman::p_load(data.table, ggplot2, ggalt, dplyr, knitr, kableExtra)
+pacman::p_load(data.table, ggplot2, ggalt, dplyr, knitr, kableExtra, googlesheets4)
 
 # Setup ---- 
 path <- "https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv"
 week1 <- as.Date("2021-09-09")
-total_weeks <- 10
+total_weeks <- 14
 start_week <- max(ceiling(as.numeric(( Sys.Date() - as.Date("2021-09-09") )) / 7) + 1, 3) # little janky
 time_period <- c(start_week:total_weeks)
 
 # past picks ----
-past_weeks <- c(1, 2, 3, 4, 5)
-past_picks1 <- c("DAL", "TEN", "NYJ", "HOU", "MIA")
-past_picks2 <- c("CHI", "TEN", "NYJ", "HOU", "DET") 
+past_weeks <- c(1, 2, 3, 4, 5, 6, 7)
+past_picks1 <- c("DAL", "TEN", "NYJ", "HOU", "MIA", "WSH", "DET")
+past_picks2 <- c("CHI", "TEN", "WSH", "HOU", "DET", "PHI", "CIN")
 
 read_data <- function(path, past_picks, all_weeks = FALSE){
   dt <- data.table::fread(path)
@@ -95,6 +95,7 @@ plot_data %>%
        y = "Team Name") + 
   scale_x_continuous(expand = c(0, 0))
 ```
+
 ## Historical accuracy of ELO ratings
 We can plot the average outcome of each historical game bucketing by the 
 probability of each team winning. We can keep only the favourites, as this 
@@ -130,6 +131,7 @@ hdt %>%
        y = "Observed win rate") + 
   theme_bw(12)
 ```
+
 ## Optimal picks
 
 We make the picks based on the opportunity cost of not picking a team in a given 
@@ -137,7 +139,7 @@ week. Meaning, we pick teams based on the cost of not making the best pick in a
 given week. 
 
 ```{r}
-make_pick <- function(dt, past_picks, past_weeks, start_week = 3, total_weeks = 13, beta = 1){
+make_pick <- function(dt, past_picks, past_weeks, start_week = 3, total_weeks = 14, beta = 1){
   
   for(i in start_week:total_weeks){
     
@@ -159,8 +161,8 @@ make_pick <- function(dt, past_picks, past_weeks, start_week = 3, total_weeks = 
   picks
 }
 
-path_1 <- make_pick(df1, past_picks1, past_weeks, beta = 1)
-path_2 <- make_pick(df2, past_picks2, past_weeks, beta = 1)
+path_1 <- make_pick(df1, past_picks1, past_weeks, beta = 0.8)
+path_2 <- make_pick(df2, past_picks2, past_weeks, beta = 0.8)
 
 tbl <- merge(path_1, path_2, by = "week")
 names(tbl) <- c("Week", rep(c("Team", "ProbWin"), 2))
@@ -168,6 +170,59 @@ names(tbl) <- c("Week", rep(c("Team", "ProbWin"), 2))
 kbl(tbl, digits=3, caption = "Optimal Picks per Week") %>%
   kable_classic(full_width=F) %>%
   add_header_above(c(" " = 1, "First Set of Picks" = 2, "Second Set of Picks" = 2))
+```
+
+## Alternative picks
+Given the cluster of teams to choose in week 6, what do other possible picks that 
+are not PHI look like?
+
+```{r}
+past_picks <- past_picks1
+past_weeks <- c(1:7)
+dt <- df1
+beta <- 0.1
+for(i in start_week:total_weeks){
+  
+  pick <- dt[week %in% c(start_week:total_weeks)]
+  pick <- pick[!(week == 7 & loser == "DET"), ] # drop PHI pick in week 1
+  pick <- pick[!loser %in% past_picks & !week %in% past_weeks]
+  pick[, value:= p_win * beta^(week - start_week)]
+  pick <- pick[order(value)]
+  pick <- pick[, .SD[1]]
+  
+  past_weeks <- append(past_weeks, pick$week)
+  past_picks <- append(past_picks, pick$loser)
+  
+}
+
+picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
+picks <- merge(picks, dt, on = week)
+alt_picks_1 <- picks[, .(week, loser, p_win)]
+
+past_picks <- past_picks2
+past_weeks <- c(1:7)
+dt <- df2
+beta <- 1
+for(i in start_week:total_weeks){
+  
+  pick <- dt[week %in% c(start_week:total_weeks)]
+  pick <- pick[!(week == 7 & loser == "CIN"), ] # drop PHI pick in week 1
+  pick <- pick[!loser %in% past_picks & !week %in% past_weeks]
+  pick[, value:= p_win * beta^(week - start_week)]
+  pick <- pick[order(value)]
+  pick <- pick[, .SD[1]]
+  
+  past_weeks <- append(past_weeks, pick$week)
+  past_picks <- append(past_picks, pick$loser)
+  
+}
+
+picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
+picks <- merge(picks, dt, on = week)
+alt_picks_2 <- picks[, .(week, loser, p_win)]
+
+alt_picks_1 # Go with WSH
+alt_picks_2 # keep PHI
 ```
 
 ## Survival Rate
@@ -184,19 +239,20 @@ cumprob <- function(picks, inc_weeks = FALSE){
   out
 }
 
-models <- list(path_1, path_2)
+models <- list(path_1, path_2, alt_picks_1, alt_picks_2)
 results <- lapply(models, function(x) cumprob(x))
 results <- do.call(cbind.data.frame, results)
-results$week <- seq(start_week, 10, 1)
-names(results) <- c("Path_1", "Path_2", "Week")
+results$week <- seq(start_week, total_weeks, 1)
+names(results) <- c("Path_1", "Path_2", "Alt_1", "Alt_2", "Week")
 
 results %>%
   tidyr::pivot_longer(cols = -Week, names_to = "Model", values_to = "p") %>%
   ggplot(aes(x = Week, y = p, color = Model)) +
   geom_line() + 
   geom_point(alpha = 0.8) + 
-  scale_x_continuous(expand = c(0, 0), limits = c(start_week, 10)) +
+  scale_x_continuous(expand = c(0, 0), limits = c(start_week, total_weeks)) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) + 
+  scale_color_viridis_d() + 
   labs(title = "Probability of reaching a given week",
        x = "Week number", 
        y = "Pr(W < w)") + 
@@ -207,16 +263,19 @@ results %>%
 
 ```{r}
 p1 <- path_1
-p2 <- path_2
+a1 <- alt_picks_1
 p1$Approach <- "Path 1"
-p2$Approach <- "Path 2"
-data <- rbind(p1, p2)
+a1$Approach <- "Week 1 Alt."
+data <- rbind(p1, a1)
+plot_data <- mutate(plot_data, picked = loser %in% past_picks1)
 
 ggplot(data, aes(x=week, y=p_win, color = Approach, label = loser)) + 
   geom_line(aes(group = week), color="#e3e2e1", size = 2) +
+  geom_point(data = plot_data, aes(x=week, y=p_win, color = "All Choices"), size = 3, alpha = 0.4) +
   geom_point(size = 3, alpha = 0.8) + 
+  geom_point(data = subset(plot_data, picked), aes(x=week, y=p_win), color = "grey", size = 3) +
   geom_text(color = "black", nudge_x = 0.2) + 
-  xlim(start_week, 10.5) +
+  xlim(start_week, 12.5) +
   coord_flip() + 
   scale_color_viridis_d() + 
   labs(title = "Comparing weekly win probabilities per Path", 
@@ -232,6 +291,7 @@ ggplot(data, aes(x=week, y=p_win, color = Approach, label = loser)) +
 ```{r}
 pre1 <- cbind(c(1:(start_week - 1)), past_picks1, "Path 1")
 pre2 <- cbind(c(1:(start_week - 1)), past_picks2, "Path 2")
+
 pre <- data.frame(rbind(pre1, pre2))
 names(pre) <- c("week", "loser", "Approach")
 pre$week <- as.numeric(pre$week)
@@ -240,12 +300,12 @@ pre <- select(pre, c("week", "loser", "p_win", "Approach"))
 data <- rbind(pre, data)
 data$forecast <- data$week > start_week
 
-ggplot(subset(plot_data, week < 11), aes(x = week, y = p_win)) + 
+ggplot(subset(plot_data, week < 13), aes(x = week, y = p_win)) + 
   geom_vline(xintercept = start_week, linetype = "dashed", alpha = 0.8) +
   geom_point(size = 2, color = "grey", alpha = 0.6) + 
-  geom_line(data = data, mapping = aes(x = week, y = p_win, color = Approach)) + 
+  geom_line(data = data, mapping = aes(x = week, y = p_win, color = Approach), alpha = 0.7) + 
   coord_flip() + 
-  xlim(1, 10) + 
+  xlim(1, 12) + 
   annotate("text", x = start_week + 0.05, y = 0, label="forecast \nhistorical", hjust = 0, color = "darkgrey") + 
   labs(title = "Choice set path", 
        y = "Win Probability", 
@@ -255,13 +315,123 @@ ggplot(subset(plot_data, week < 11), aes(x = week, y = p_win)) +
   theme_bw(12)
 ```
 
-## Next best picks
-What is the best team to pick next, if we do not go with the optimal pick?
+
+## Team Ownership
+We can track the picks made by other competitors and use this information to 
+pick teams with low ownership in upcoming weeks. 
+
+We could assume each player picks the best team in terms of probability each 
+week based on their remaining picks, and optimize based on this information. 
+
+This could be done by splitting `ownership` based on the player, then computing 
+their optimal path. This can be done either by assuming they play my strategy, 
+or that they are picking the lowest probability team each week. 
+
+Lets begin with them also playing my strategy each week.
+
+This code seems to be off somehow, my picks are very close to the worst.
+
+```{r}
+ownership <- "https://docs.google.com/spreadsheets/d/1sajv1HXDqzjG2bXwx927MTP_TUKRWsjVSvKAwnaWZcs/edit?usp=sharing"
+own <- googlesheets4::read_sheet(ownership)
+own <- tidyr::pivot_longer(own, cols = contains("Week"), names_to = "Week", values_to = "Pick")
+
+other_picks <- function(player){
+  picks <- player$Pick
+  label <- unique(player$Player)
+  data <- read_data(path, past_picks = picks)
+  weeks <- c(1:(start_week - 1))
+  
+  for(w in start_week:total_weeks){
+    tmp <- data %>%
+      filter(week == as.numeric(w)) %>%
+      filter(!loser %in% picks) %>%
+      arrange(p_win) %>%
+      slice(1L)
+      picks <- append(picks, tmp$loser)
+      weeks <- append(weeks, tmp$week)
+  }
+  
+  #TODO: Add function to make picks by other measures
+  
+  picks <- tibble(weeks, picks, label)
+  picks
+  
+}
+split_own <- split(own, own$Player)
+proj_picks <- bind_rows(lapply(split_own, other_picks))
+
+# Simulate rest of the year ----
+
+my_picks <- rbind(path_1, path_2)
+my_picks <- my_picks %>% select(weeks = week, picks = loser )
+my_picks$label <- c(rep("Pick 1", 6), rep("Pick 2", 6))
+season_picks <- rbind(proj_picks, my_picks)
+
+season_games <- season_picks %>%
+  group_by(weeks, picks) %>%
+  slice(1L) %>%
+  filter(weeks >= start_week) %>%
+  left_join(plot_data, by = c("weeks" = "week", "picks" = "loser")) %>%
+  select(weeks, picks, p_win) %>%
+  mutate(outcome_lose = p_win < runif(1, 0, 1))
+
+# update outcomes of games
+#TODO: simulate games from above many times
+
+season_picks %>%
+  left_join(season_games, by = c("weeks", "picks")) %>%
+  filter(weeks >= start_week) %>%
+  mutate(out = 0, 
+         out = ifelse(lag(out, 1) == 1 | outcome_lose == FALSE, 1, 0)) # need to come up with a way to check losers
+
+```
+
+## add ownership percent to table of picks
+
+We can look to see which of our picks are open to other competitors. As we
+can see below, there is a high likelihood all those who haven't already
+picked Detroit in Week 7 will take Cincinnati as they have yet to be picked by
+anyone.
+
+```{r}
+teams <- unique(plot_data$loser)
+players_left <- length(unique(own$Player)) - 2 # not include myself
+team_list <- c()
+percent_list <- c()
+for(t in teams){
+  tmp <- subset(own, Pick == t & Player != "Hutch 1" & Player != "Hutch 2")
+  count <- nrow(tmp)
+  percent <- (17 - count) / 17
+  percent_list <- append(percent_list, percent)
+  team_list <- append(team_list, t)
+}
+
+available <- data.table(loser = team_list, avail_pct = percent_list)
+
+path_1 <- left_join(path_1, available, by = "loser")
+path_2 <- left_join(path_2, available, by = "loser")
+
+tbl <- merge(path_1, path_2, by = "week")
+names(tbl) <- c("Week", rep(c("Team", "ProbWin", "Availability"), 2))
+
+kbl(tbl, digits=3, caption = "Optimal Picks per Week, with Team Availability") %>%
+  kable_classic(full_width=F) %>%
+  add_header_above(c(" " = 1, "First Set of Picks" = 3, "Second Set of Picks" = 3))
+```
+
+## Optimal picks by assuming picks of remaining players
+
+We need to make some assumptions on the strategies of the remaining players. 
+For now lets make the naive assumption that each other player will pick the 
+team with the lowest given probability in the following week. 
+* We can then experiment with my picking strategy, then by Vegas odds.
+
 
 ```{r}
 
 
 ```
-
-
-
+# Next steps
+1. What can I do knowing the ownership percentages?  
+2. Tidy the code up, pretty sloppy. See what I'd like to keep. 
