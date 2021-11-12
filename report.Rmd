@@ -220,25 +220,42 @@ dt = read_data("https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv"
 past_weeks = c(1:2) # skip weeks 1 and 2
 past_picks = c("DAL", "TEN") # My first picks after optimizing
 
-pick = by_oc(dt, past_picks, past_weeks, beta = 0.9)
+pick = by_oc(dt, past_picks, past_weeks, beta = 1)
 naive = by_week(dt, past_picks, past_weeks)
+
+avg_pick = mean(pick$p_win)
+avg_naive = mean(naive$p_win)
+avg_row = data.frame("Mean", "", avg_pick, "", avg_naive, "")
+sd_pick = sd(pick$p_win)
+sd_naive = sd(naive$p_win)
+sd_row = data.frame("SD", "", sd_pick, "", sd_naive, "")
 
 tbl = pick %>% 
   left_join(naive, by = "week", suffix = c("_oc", "_week")) %>%
-  mutate(delta = p_win_oc - p_win_week)
+  mutate(delta = round(p_win_oc - p_win_week, 3))
+
 
 names(tbl) = c("Week", rep(c("Team", "ProbWin"), 2), "Diff")
+names(avg_row) = names(tbl)
+names(sd_row) = names(tbl)
+
+tbl = rbind(tbl, avg_row, sd_row)
 
 kbl(tbl, digits=3, caption = "Optimal Picks per Week") %>%
   kable_classic(full_width=F) %>%
-  add_header_above(c(" " = 1, "Oppertunity Cost" = 2, "Lowest Per Week" = 2, " " = 1))
+  add_header_above(c(" " = 1, "Oppertunity Cost" = 2, "Lowest Per Week" = 2, " " = 1)) %>%
+  row_spec(nrow(tbl), bold=T) %>%
+  row_spec(nrow(tbl) - 1, bold=T)
 ```
 
 Given the Boolean nature of our predictions, we can compute the likelihood 
-of reaching a given week based on our pick paths. Surprisingly, the By Week 
-model outpreforms the Oppertunity cost model up until Week 13. 
+of reaching a given week based on our pick paths. Unsurprisingly, we see that the 
+best pick per week model outperforms our opportunity cost model early on. 
 
 ```{r, echo = FALSE, message = FALSE}
+# Probability of reaching a given week ----
+require(scales)
+
 models = list(pick[3:10, ], naive[3:10, ])
 models = lapply(models, cumprob) %>% 
   bind_cols()
@@ -250,38 +267,65 @@ models %>%
   geom_line() + 
   geom_point(alpha = 0.8) + 
   scale_x_continuous(expand = c(0, 0), limits = c(3, 10)) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) + 
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = percent) + 
   scale_color_viridis_d() + 
   labs(title = "Probability of reaching a given week, for the first 10 weeks",
        x = "Week number", 
-       y = "Pr(W < w)") + 
+       y = "") + 
   theme_bw(12)
 ```
 
-As we can see above, we slightly out preform simply picking the most likely team 
-to win each week. Where the Opportunity Cost model preforms is in later weeks when 
-picks begin to thin out. 
+Visualizing the choice set of each model below, we can see the opportunity cost 
+model takes on much greater risk in Weeks 4 and 5, to receive an edge in Weeks 
+6 and 8. 
+
+```{r}
+# Plot choice set of each model ----
+pick$approach = "Oppertunity Cost"
+naive$approach = "Lowest per Week"
+compare = rbind(pick, naive)
+
+ggplot(compare, aes(x = week, y = p_win, color = approach, label = loser)) + 
+  geom_line(aes(group = week), color="#e3e2e1", size = 2, alpha = 0.7) + 
+  geom_point(size = 3) + 
+  geom_text(color = "black", nudge_x = 0.5) + 
+  scale_color_viridis_d() + 
+  coord_flip() + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 11)) + 
+  scale_y_continuous(labels = percent) + 
+  labs(title = "Choice set comparison between Opeprtunity Cost model, \nand picking the lowest win probability per week", 
+       x = "Week", 
+       y = "Prob. Win", 
+       color = "Model") + 
+  theme_bw(12)
+```
 
 ### Season Results
 
+The season started with 33 players, with the season results shown below. 
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 ownership <- "https://docs.google.com/spreadsheets/d/1sajv1HXDqzjG2bXwx927MTP_TUKRWsjVSvKAwnaWZcs/edit?usp=sharing"
-own <- googlesheets4::read_sheet(ownership)
-own <- tidyr::pivot_longer(own, cols = contains("Week"), names_to = "Week", values_to = "Pick")
-
-#TODO: update to show player is out
-own = own %>% 
+own <- googlesheets4::read_sheet(ownership) %>%
+  tidyr::pivot_longer(cols = contains("Week"), names_to = "Week", values_to = "Pick") %>% 
   mutate(Week = as.numeric(gsub("Week ", "", Week)), 
-         OUT = ifelse(Pick == "OUT", TRUE, FALSE)) %>%
+         OUT = ifelse(Pick == "OUT", TRUE, FALSE), 
+         Pick = case_when(Pick == "WFT" ~ "WSH", 
+                          Pick == "LVR" ~ "LAR",
+                          Pick == "AZ" ~ "ARI",
+                          TRUE ~ Pick)) %>%
   group_by(Player, Week) %>%
   left_join(dt, by = c("Week" = "week", "Pick" = "loser")) %>%
-  select("Week", "Pick", "p_win", "Player", "OUT", "upset")
+  select("Week", "Pick", "p_win", "Player", "OUT", "upset") %>%
+  mutate(p_win = case_when(
+    is.na(p_win) ~ 0.5, 
+    TRUE ~ p_win))
   
 
-ggplot(subset(plot_data, week < 11), aes(x = week, y = p_win)) + 
+ggplot(subset(plot_data, week < 10), aes(x = week, y = p_win)) + 
   geom_point(size = 2, alpha = 0.6, color = "#440154FF") + 
-  geom_line(data = own, mapping = aes(x = Week, y = p_win, group = Player), alpha = 0.3) + 
-  geom_point(data = own, mapping = aes(x = Week, y = p_win, color = upset), size = 2, alpha = 0.9, stroke = 1) + 
+  geom_line(data = subset(own, p_win != 0.5), mapping = aes(x = Week, y = p_win, group = Player), alpha = 0.3) + 
+  geom_point(data = subset(own, p_win != 0.5), mapping = aes(x = Week, y = p_win, color = upset), size = 2, alpha = 0.9, stroke = 1) + 
   coord_flip() + 
   xlim(1, 10) + 
   # annotate("text", x = 1 + 0.05, y = 0, label="forecast \nhistorical", hjust = 0, color = "darkgrey") + 
@@ -296,3 +340,125 @@ ggplot(subset(plot_data, week < 11), aes(x = week, y = p_win)) +
 ```
 
 The season only lasted to Week 9, with three players splitting the pot. 
+
+Admittedly, I did not follow the above Oppertuniy Cost Algorithm perfectly. I had 
+two entries, and so chose to offset the picks I was making each week to mitigate 
+some of the risk. 
+
+```{r}
+# Plot actual selection ----
+jordan_picks = own[grepl("Hutch", own$Player), c("Week", "Pick", "p_win", "Player")]
+names(jordan_picks) = names(compare)
+
+ggplot(compare, aes(x = week, y = p_win, color = approach, shape = approach, label = loser)) + 
+  geom_line(aes(group = week), color="#e3e2e1", size = 2, alpha = 0.7) + 
+  geom_point(size = 3, alpha = 0.8) + 
+  # geom_text(color = "black", nudge_x = 0.5) + 
+  scale_color_viridis_d() + 
+  coord_flip() + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 11)) + 
+  scale_y_continuous(labels = percent) + 
+  labs(title = "Choice set comparison between Opeprtunity Cost model, \nand picking the lowest win probability per week", 
+       x = "Week", 
+       y = "Prob. Win", 
+       color = "Model", 
+       shape = "Model") + 
+  theme_bw(12)
+```
+
+If we compare the cumulative probabilities across the above models, and the actual 
+picks I put into practice, we can see that the oppertunity cost model ended up with 
+the higher probability by Week 10. The only downside is taking on the increased risk 
+earlier in weeks 4 and 5. 
+
+```{r}
+
+# Plot cumprob ----
+
+# project remaining picks for each set of picks
+jordan_1 = jordan_picks[jordan_picks$approach == "Hutch 1", ]
+jordan_2 = jordan_picks[jordan_picks$approach == "Hutch 2", ]
+jordan_1 = by_oc(dt, past_picks = jordan_1$loser[1:8], past_weeks = 1:8, beta = 1, start_week = 1, total_weeks = 10)
+jordan_2 = by_oc(dt, past_picks = jordan_2$loser[1:7], past_weeks = 1:7, beta = 1, start_week = 1, total_weeks = 10)
+
+# add to dataset
+jordan_1$approach = "Jordan 1"
+jordan_2$approach = "Jordan 2"
+models = list(pick[3:10, ], naive[3:10, ], jordan_1[3:10, ], jordan_2[3:10, ])
+models = lapply(models, cumprob) %>% 
+  bind_cols()
+models$week = 3:10
+names(models) = c("Oppertunity Cost", "By Week", "Jordan 1", "Jordan 2", "Week")
+models %>%
+  tidyr::pivot_longer(cols = -Week, names_to = "Model", values_to = "p") %>%
+  ggplot(aes(x = Week, y = p, color = Model, shape = Model)) +
+  geom_line() + 
+  geom_point(alpha = 0.8) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(3, 10)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = percent) + 
+  scale_color_viridis_d() + 
+  labs(title = "Probability of reaching a given week, for the first 10 weeks",
+       x = "Week number", 
+       y = "") + 
+  theme_bw(12)
+
+```
+
+
+Using the same chart format, what do things look like for all the competitors in the pool?
+We don't know the picks that would be made by compeditors who've lost in earlier weeks, 
+therefore, I will only plot the projected probabilities  up until each person lost.
+
+In order to compare my performance with others, I plotted my pick projections in purple. 
+We can see, I was in great shape before losing my second team in Week 7 and top team in 
+Week 8. In fact, My probability of making week 8 was greater than that of a majority of 
+teams making week 6. 
+
+Despite not making the final 3 in the pool - the payout positions - my algorithm 
+placed me in a fantastic position to make money in the pool. 
+
+```{r}
+# plot cumulative probabilities
+tbl_data = filter(own, Pick != "OUT" & Week > 2) %>%
+  group_by(Player) %>%
+  mutate(cum_prob = cumprod(1-p_win), 
+         own = ifelse(Player == "Hutch 1" | Player == "Hutch 2", TRUE, FALSE)) %>%
+  ungroup() %>%
+  group_by(Player) %>%
+  mutate(win_avg = max(Week) + (min(cum_prob))) %>%
+  ungroup() %>%
+  mutate(Player = reorder(Player, win_avg))
+
+ggplot(tbl_data, aes(x = Week, y = cum_prob, group = Player, color = own)) +
+  geom_line(alpha = 0.7) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(3, 9)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = percent) + 
+  scale_color_viridis_d(direction = -1) + 
+  geom_hline(yintercept = min(subset(tbl_data, Player == "Hutch 1")$cum_prob), linetype = "dotted") +
+  geom_hline(yintercept = min(subset(tbl_data, Player == "Hutch 2")$cum_prob), linetype = "dotted") +
+  labs(title = "Probability of reaching a given week, for all compeditors, \nWith my own picks highlighted",
+       x = "Week number", 
+       y = "") + 
+    theme_bw(12) +
+    theme(legend.position = "none")
+```
+
+We can show the probabilities of reaching a given week with a heatmap below. The lighter the 
+box, the greater the probability of reaching that week. As we can see, I was in fantastic 
+shape again to move on, with `Hutch 1` in the lead in Week 8.
+```{r}
+
+# plot heatmap of cum prob
+ggplot(tbl_data, aes(y = Player, x = Week, fill = cum_prob)) + 
+  geom_tile() + 
+  scale_x_continuous(expand = c(0, 0), breaks = 3:9) +
+  scale_fill_viridis_c(direction = 1) + 
+  labs(title = "Cumulative Probabilities of making a given week, \nordered by the greatest likelihood", 
+       x = "Week", 
+       y = "", 
+       fill = "Pr(W < w)") + 
+  theme_bw(12) + 
+  theme(panel.grid.major = element_blank())
+```
+
+
