@@ -112,7 +112,7 @@ base = 0.5
 result = c()
 picks = list()
 track = c()
-N = 1000000
+N = 100000
 for(i in 1:N){
   chromosome = sample(teams, 8, replace = FALSE, prob = (1-prob))
   performance = score(chromosome)

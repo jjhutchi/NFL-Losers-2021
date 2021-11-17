@@ -371,7 +371,7 @@ Given the Boolean nature of our predictions, we can compute the likelihood
 of reaching a given week based on our pick paths. Unsurprisingly, we see that the 
 best pick per week model outperforms our opportunity cost model early on. 
 
-```{r, echo = FALSE, message = FALSE}
+```{r, message = FALSE}
 # Probability of reaching a given week ----
 require(scales)
 
@@ -402,7 +402,7 @@ Additionally, we can see the poor performance out of our GA model. This is to be
 expected as it is only using the random breeding and should be taking on a more 
 rigerous algo. 
 
-```{r}
+```{r, message = FALSE}
 # Plot choice set of each model ----
 pick$approach = "Oppertunity Cost"
 naive$approach = "Lowest per Week"
@@ -428,7 +428,7 @@ ggplot(compare, aes(x = week, y = p_win, color = approach, label = loser)) +
 
 The season started with 33 players, with the season results shown below. 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 ownership <- "https://docs.google.com/spreadsheets/d/1sajv1HXDqzjG2bXwx927MTP_TUKRWsjVSvKAwnaWZcs/edit?usp=sharing"
 own <- googlesheets4::read_sheet(ownership) %>%
   tidyr::pivot_longer(cols = contains("Week"), names_to = "Week", values_to = "Pick") %>% 
@@ -470,7 +470,7 @@ Admittedly, I did not follow the above Oppertuniy Cost Algorithm perfectly. I ha
 two entries, and so chose to offset the picks I was making each week to mitigate 
 some of the risk. 
 
-```{r}
+```{r, message=FALSE}
 # Plot actual selection ----
 jordan_picks = own[grepl("Hutch", own$Player), c("Week", "Pick", "p_win", "Player")]
 names(jordan_picks) = names(compare)
@@ -496,7 +496,7 @@ picks I put into practice, we can see that the oppertunity cost model ended up w
 the higher probability by Week 10. The only downside is taking on the increased risk 
 earlier in weeks 4 and 5. 
 
-```{r}
+```{r, message=FALSE}
 
 # Plot cumprob ----
 
@@ -531,7 +531,7 @@ models %>%
 
 
 Using the same chart format, what do things look like for all the competitors in the pool?
-We don't know the picks that would be made by compeditors who've lost in earlier weeks, 
+We don't know the picks that would be made by competitors who've lost in earlier weeks, 
 therefore, I will only plot the projected probabilities  up until each person lost.
 
 In order to compare my performance with others, I plotted my pick projections in purple. 
@@ -542,7 +542,7 @@ teams making week 6.
 Despite not making the final 3 in the pool - the payout positions - my algorithm 
 placed me in a fantastic position to make money in the pool. 
 
-```{r}
+```{r, message=FALSE}
 # plot cumulative probabilities
 tbl_data = filter(own, Pick != "OUT" & Week > 2) %>%
   group_by(Player) %>%
@@ -572,7 +572,7 @@ We can show the probabilities of reaching a given week with a heatmap below. The
 box, the greater the probability of reaching that week. As we can see, I was in fantastic 
 shape again to move on, with `Hutch 1` in the lead in Week 8.
 
-```{r}
+```{r, message=FALSE}
 # plot heatmap of cum prob
 ggplot(tbl_data, aes(y = Player, x = Week, fill = cum_prob)) + 
   geom_tile() + 
