@@ -62,7 +62,7 @@ score = function(chromosome){
 ga = function(base){
   base = 0.5
   result = c()
-  for(i in 1:10000){
+  for(i in 1:100){
     chromosome = sample(teams, 8, replace = FALSE, prob = (1-prob))
     performance = score(chromosome)
     if(performance < base){

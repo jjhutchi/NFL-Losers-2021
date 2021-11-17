@@ -54,6 +54,8 @@ the frequency of game outcomes based on their ELO projections. If ELO were a goo
 forecasting variable, we would expect to see a 45 degree line between projected and 
 observed outcomes. 
 
+### Historical ELO performance
+
 ```{r}
 read.csv("https://projects.fivethirtyeight.com/nfl-api/nfl_elo.csv") %>%
   mutate(loser_score = ifelse(qbelo_prob1 > qbelo_prob2, score2, score1), 
@@ -70,7 +72,7 @@ read.csv("https://projects.fivethirtyeight.com/nfl-api/nfl_elo.csv") %>%
   geom_abline(slope = 1) + 
   annotate("text", x = 0.5, y = 0.49, label = "y = x", hjust = 0) + 
   annotate("text", x = 0.5, y = 0.6, label = "Line of \nbest fit", hjust = 0, color = "blue") + 
-  labs(title = "The historical oucome observation lines up well with the projected outcomes", 
+  labs(title = "The historical outcome observation lines up well with the projected outcomes", 
        x = "Forecasted win rate", 
        y = "Observed win rate") + 
   theme_bw(12)
@@ -99,6 +101,8 @@ read_data = function(path, past_picks, all_weeks = FALSE){
   return(dt)
 }
 ```
+
+## 2021 NFL Season Data 
 
 There are 18 weeks and 32 teams to pick from in the 2021 season. From the 
 heat map below, we see that Tom Brady and the Tampa Bay Buccaneers are favourited 
@@ -167,6 +171,14 @@ and the win probability of the next best team. This approach allows for the mode
 to pick teams when they are the most valuable, rather than making the best pick 
 to move on to the next week. 
 
+The algorithm is the following: 
+
+1. Compute the difference between the lowest and second lowest win probabilities 
+per week. 
+2. Pick the team with the largest delta, or oppertunity cost across all weeks. 
+3. Remove the picked team and week from the pool of options.
+4. Repeat step 1.
+
 Compared to the naive approach, this model preforms worse in early weeks, but 
 out preforms the naive approach the longer the season goes on. 
 
@@ -232,17 +244,25 @@ cumprob <- function(picks, inc_weeks = FALSE){
 }
 ```
 
-### Genetic Learning Algorithm: 
+### Random Search: 
 * Work in progress * 
 We can find a set of weekly picks that minimizes the total win probability 
-using a genetic algorithm approach. The general principal is to select teams 
+using a random search approach. The general principal is to select teams 
 randomly conditional on their overall team performance. Then, we take the 
 best performing teams per sample, and mutate the teams from their selections 
 to derive further results. Ultimately, this should get us towards an optimal 
 selection, simply by breeding well performing teams. 
 
+The rough algorithm is the following: 
 
-```{r}
+1. Compute weighted probabilities for each team based on their season average 
+win rate. 
+2. Sample a set of teams for each week based on the weighting calculated in (1). 
+3. Compute the average win probability for each team.
+4. ... and so on, with mutations, corss-selection, reproduction etc. 
+
+
+```{r, cache = TRUE}
 path = "https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv"
 df = read_data(path, all_weeks = TRUE)
 df = tidyr::pivot_longer(df, cols = c("loser", "winner"), names_to = c("favourite"), values_to = ("team"))
@@ -303,6 +323,8 @@ ga_picks = data.frame(week = c(3:10), team = top_chromosome)
 ga_picks = left_join(ga_picks, df, by = c("week", "team"))
 names(ga_picks) = c("week", "loser", "p_win")
 ```
+
+### Comparing across models
 
 ```{r, echo = FALSE, message = FALSE}
 dt = read_data("https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv", past_picks = c())
@@ -379,7 +401,7 @@ rigerous algo.
 # Plot choice set of each model ----
 pick$approach = "Oppertunity Cost"
 naive$approach = "Lowest per Week"
-ga_picks$approach = "Genetic Learning"
+ga_picks$approach = "Random Search"
 compare = rbind(pick, naive, ga_picks)
 
 ggplot(compare, aes(x = week, y = p_win, color = approach, label = loser)) + 
@@ -397,7 +419,7 @@ ggplot(compare, aes(x = week, y = p_win, color = approach, label = loser)) +
   theme_bw(12)
 ```
 
-### Season Results
+## Season Results
 
 The season started with 33 players, with the season results shown below. 
 
@@ -431,7 +453,8 @@ ggplot(subset(plot_data, week < 10), aes(x = week, y = p_win)) +
        x = "Week Number") + 
   theme_bw(12) +
   theme(legend.position="none") + 
-  scale_color_manual(values=c("#440154FF", "#FDE725FF"))
+  scale_color_manual(values=c("#440154FF", "#FDE725FF")) + 
+  scale_y_continuous(labels = percent)
 
 
 ```
@@ -543,8 +566,8 @@ ggplot(tbl_data, aes(x = Week, y = cum_prob, group = Player, color = own)) +
 We can show the probabilities of reaching a given week with a heatmap below. The lighter the 
 box, the greater the probability of reaching that week. As we can see, I was in fantastic 
 shape again to move on, with `Hutch 1` in the lead in Week 8.
-```{r}
 
+```{r}
 # plot heatmap of cum prob
 ggplot(tbl_data, aes(y = Player, x = Week, fill = cum_prob)) + 
   geom_tile() + 
