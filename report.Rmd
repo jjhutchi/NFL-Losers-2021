@@ -2,7 +2,13 @@
 title: "NFL Losers Pool 2021 Optimal Pick Algorithm"
 author: "Jordan Hutchings"
 date: "08/11/2021"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    code_folding: hide
 ---
 
 ```{r, echo = FALSE}
@@ -27,7 +33,7 @@ I've instead choose to leverage the NFL game projections made by
 [FiveThirtyEight](https://projects.fivethirtyeight.com/2021-nfl-predictions/games/). 
 These projections are based off their quarterback-adjusted ELO forecasts. 
 
-### ELO Forecasts
+## ELO Forecasts
 
 ELO is a fantastic and widely used method of ranking two competing teams. 
 Commonly used in chess, your ELO score is a representation of your skill based 
@@ -71,7 +77,7 @@ read.csv("https://projects.fivethirtyeight.com/nfl-api/nfl_elo.csv") %>%
 ```
 
 
-```{r, echo = FALSE}
+```{r}
 # Helper Functions ----
 read_data = function(path, past_picks, all_weeks = FALSE){
   dt = data.table::fread(path)
@@ -89,13 +95,6 @@ read_data = function(path, past_picks, all_weeks = FALSE){
   dt = dt[, upset:=ifelse(loser_score > winner_score, TRUE, FALSE)]
   
   dt = dt[, .(week, loser, winner, p_win, p_win_winner, upset)]
-  
-  
-  
-  # if(!all_weeks){
-  #   dt = dt[week %in% time_period]
-  #   dt = dt[!loser %in% past_picks]
-  # }
   
   return(dt)
 }
@@ -129,7 +128,7 @@ plot_data %>%
   scale_x_continuous(expand = c(0, 0))
 ```
 
-### Determining the optimal pick profile
+## Determining the optimal pick profile
 
 My approach for the contest was to pick teams based on their opportunity cost of 
 not being selected, or in other words, the percentage differential towards the 
@@ -147,6 +146,30 @@ and then pick from the remainder of teams in Weeks 1 and 2.
 Last year, the pool lasted only until Week 10. For this reason, I also do not 
 optimize my picks beyond this week. The pool is less about lasting to Week 18 as 
 it is about outlasting the other competitors. 
+
+### Naive Approach - No foresight
+We can use a naive algorithm that has no foresight into future periods to compare 
+against the opportunity cost model. Picking the lowest probability team week by 
+week will front-load the best teams and will most likely run into suboptimal picks 
+in later weeks. 
+
+The algorithm is straight forward: 
+
+1. Pick the lowest win probability in the start week.
+2. Remove the picked team from the candidate pool of teams for the remaining weeks.
+3. Move to the next week and repeat. 
+
+
+### Oppertunity Cost Model: 
+The benefit of this algorithm comes with its forward-looking nature. The model 
+determines each weekly pick based on the delta between the best pick that week 
+and the win probability of the next best team. This approach allows for the model 
+to pick teams when they are the most valuable, rather than making the best pick 
+to move on to the next week. 
+
+Compared to the naive approach, this model preforms worse in early weeks, but 
+out preforms the naive approach the longer the season goes on. 
+
 
 ```{r}
 # Picking functions ----
@@ -209,6 +232,77 @@ cumprob <- function(picks, inc_weeks = FALSE){
 }
 ```
 
+### Genetic Learning Algorithm: 
+* Work in progress * 
+We can find a set of weekly picks that minimizes the total win probability 
+using a genetic algorithm approach. The general principal is to select teams 
+randomly conditional on their overall team performance. Then, we take the 
+best performing teams per sample, and mutate the teams from their selections 
+to derive further results. Ultimately, this should get us towards an optimal 
+selection, simply by breeding well performing teams. 
+
+
+```{r}
+path = "https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv"
+df = read_data(path, all_weeks = TRUE)
+df = tidyr::pivot_longer(df, cols = c("loser", "winner"), names_to = c("favourite"), values_to = ("team"))
+df = mutate(df, p = case_when(
+  favourite == "loser" ~ p_win, 
+  favourite == "winner" ~ p_win_winner)) %>%
+  select(week, team, p) %>%
+  filter(week %in% 3:10)
+
+prob = setDT(df)[, .(w=mean(p)), by = c("team")]
+teams = prob$team
+prob = prob$w
+
+# Compute the average win probability for a set of teams
+score = function(chromosome){
+  data = data.frame(cbind(chromosome, week = c(3:10)))
+  data = merge(data, df, by.x = c("chromosome", "week"), by.y = c("team", "week"))
+  if(nrow(data) < length(chromosome)){
+    return(1) # team picked on by-week
+  }
+  return(mean(data$p))
+}
+
+# loop through some trials, see what optimal solution is
+base = 0.5
+result = c()
+picks = list()
+track = c()
+N = 100000
+for(i in 1:N){
+  chromosome = sample(teams, 8, replace = FALSE, prob = (1-prob))
+  performance = score(chromosome)
+  if(performance < base){
+    base = performance
+    top_chromosome = chromosome
+    picks[[length(picks) + 1]] = chromosome
+    result = append(result, base)
+  }
+  track = append(track, base) # to plot progress
+}
+
+plot = data.frame(prob = track)
+plot$trial = 1:N
+
+require(scales)
+ggplot(plot, aes(x = trial, y = prob)) + 
+  geom_point() + 
+  scale_color_viridis_d() + 
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = percent) + 
+  scale_x_continuous(trans='log10') +
+  labs(title = "GA Model - Mean Weekly Win Probability",
+       x = "Trial Number - Logs", 
+       y = "Performance") + 
+  theme_bw(12)
+
+# set up for later
+ga_picks = data.frame(week = c(3:10), team = top_chromosome)
+ga_picks = left_join(ga_picks, df, by = c("week", "team"))
+names(ga_picks) = c("week", "loser", "p_win")
+```
 
 ```{r, echo = FALSE, message = FALSE}
 dt = read_data("https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv", past_picks = c())
@@ -218,19 +312,22 @@ past_picks = c("DAL", "TEN") # My first picks after optimizing
 pick = by_oc(dt, past_picks, past_weeks, beta = 1)
 naive = by_week(dt, past_picks, past_weeks)
 
+
 avg_pick = mean(pick$p_win)
 avg_naive = mean(naive$p_win)
-avg_row = data.frame("Mean", "", avg_pick, "", avg_naive, "")
+avg_ga = mean(ga_picks$p_win)
+avg_row = data.frame("Mean", "", avg_pick, "", avg_naive, "", avg_ga)
 sd_pick = sd(pick$p_win)
 sd_naive = sd(naive$p_win)
-sd_row = data.frame("SD", "", sd_pick, "", sd_naive, "")
+sd_ga = sd(ga_picks$p_win)
+sd_row = data.frame("SD", "", sd_pick, "", sd_naive, "", sd_ga)
 
 tbl = pick %>% 
   left_join(naive, by = "week", suffix = c("_oc", "_week")) %>%
-  mutate(delta = round(p_win_oc - p_win_week, 3))
+  left_join(ga_picks, by = "week")
 
 
-names(tbl) = c("Week", rep(c("Team", "ProbWin"), 2), "Diff")
+names(tbl) = c("Week", rep(c("Team", "ProbWin"), 3))
 names(avg_row) = names(tbl)
 names(sd_row) = names(tbl)
 
@@ -238,7 +335,7 @@ tbl = rbind(tbl, avg_row, sd_row)
 
 kbl(tbl, digits=3, caption = "Optimal Picks per Week") %>%
   kable_classic(full_width=F) %>%
-  add_header_above(c(" " = 1, "Oppertunity Cost" = 2, "Lowest Per Week" = 2, " " = 1)) %>%
+  add_header_above(c(" " = 1, "Oppertunity Cost" = 2, "Lowest Per Week" = 2, "GA Model" = 2)) %>%
   row_spec(nrow(tbl), bold=T) %>%
   row_spec(nrow(tbl) - 1, bold=T)
 ```
@@ -251,11 +348,11 @@ best pick per week model outperforms our opportunity cost model early on.
 # Probability of reaching a given week ----
 require(scales)
 
-models = list(pick[3:10, ], naive[3:10, ])
+models = list(pick[3:10, ], naive[3:10, ], ga_picks)
 models = lapply(models, cumprob) %>% 
   bind_cols()
 models$week = 3:10
-names(models) = c("Oppertunity Cost", "By Week", "Week")
+names(models) = c("Oppertunity Cost", "By Week", "GA", "Week")
 models %>%
   tidyr::pivot_longer(cols = -Week, names_to = "Model", values_to = "p") %>%
   ggplot(aes(x = Week, y = p, color = Model)) +
@@ -274,11 +371,16 @@ Visualizing the choice set of each model below, we can see the opportunity cost
 model takes on much greater risk in Weeks 4 and 5, to receive an edge in Weeks 
 6 and 8. 
 
+Additionally, we can see the poor performance out of our GA model. This is to be 
+expected as it is only using the random breeding and should be taking on a more 
+rigerous algo. 
+
 ```{r}
 # Plot choice set of each model ----
 pick$approach = "Oppertunity Cost"
 naive$approach = "Lowest per Week"
-compare = rbind(pick, naive)
+ga_picks$approach = "Genetic Learning"
+compare = rbind(pick, naive, ga_picks)
 
 ggplot(compare, aes(x = week, y = p_win, color = approach, label = loser)) + 
   geom_line(aes(group = week), color="#e3e2e1", size = 2, alpha = 0.7) + 
@@ -288,7 +390,7 @@ ggplot(compare, aes(x = week, y = p_win, color = approach, label = loser)) +
   coord_flip() + 
   scale_x_continuous(expand = c(0, 0), limits = c(0, 11)) + 
   scale_y_continuous(labels = percent) + 
-  labs(title = "Choice set comparison between Opeprtunity Cost model, \nand picking the lowest win probability per week", 
+  labs(title = "Choice set comparison between models", 
        x = "Week", 
        y = "Prob. Win", 
        color = "Model") + 
