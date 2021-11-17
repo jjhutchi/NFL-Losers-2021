@@ -17,16 +17,17 @@ pacman::p_load(dplyr, ggplot2, kableExtra, data.table)
 ```
 
 I've joined my buddies annual NFL Losers Pool, and while I spend much less time 
-keeping up with the NFL than other competitors in the pool, I have a secret 
-strategy in mind. Now that the pool is over, I am able to publicize the approach 
+keeping up with the NFL than other competitors in the pool, I chose to make my picks 
+optimizing over NFL game outcome forecasts.
+Now that the pool is over, I am able to publicize the approach 
 I took to maximizing my likelihood of success in the pool. 
 
-For those who haven't heard of a losers pool before, the rules are pretty straight 
+For those who haven't heard of a losers pool before, the rules are straight 
 forward. Each entrant picks one team a week to lose. If your pick wins, you are 
 eliminated from the pool. The last entrant left in the pool collects the total 
-pot of entry fees. The one catch, once a team is picked, you cannot pick that 
+pot of entry fees. The only catch, once a team is picked, you cannot pick that 
 team again. This is where the strategy comes into play, by optimizing when to 
-pick each team, one can reduce their likelihood of losing from the pool. 
+pick each team, one can reduce your overall likelihood of losing from the pool. 
 
 While it would have been a great exercise to forecast the outcomes of the NFL season, 
 I've instead choose to leverage the NFL game projections made by 
@@ -272,11 +273,16 @@ df = mutate(df, p = case_when(
   select(week, team, p) %>%
   filter(week %in% 3:10)
 
-prob = setDT(df)[, .(w=mean(p)), by = c("team")]
+smaller_df = df %>%
+  group_by(week) %>%
+  arrange(p) %>%
+  slice(1:3L)
+
+# what about our GA on a subset of the three best teams per week?
+prob = setDT(smaller_df)[, .(w=mean(p)), by = c("team")]
 teams = prob$team
 prob = prob$w
 
-# Compute the average win probability for a set of teams
 score = function(chromosome){
   data = data.frame(cbind(chromosome, week = c(3:10)))
   data = merge(data, df, by.x = c("chromosome", "week"), by.y = c("team", "week"))
@@ -286,12 +292,11 @@ score = function(chromosome){
   return(mean(data$p))
 }
 
-# loop through some trials, see what optimal solution is
 base = 0.5
 result = c()
 picks = list()
 track = c()
-N = 100000
+N = 1000000
 for(i in 1:N){
   chromosome = sample(teams, 8, replace = FALSE, prob = (1-prob))
   performance = score(chromosome)
@@ -335,12 +340,12 @@ pick = by_oc(dt, past_picks, past_weeks, beta = 1)
 naive = by_week(dt, past_picks, past_weeks)
 
 
-avg_pick = mean(pick$p_win)
-avg_naive = mean(naive$p_win)
+avg_pick = mean(pick[3:10, ]$p_win)
+avg_naive = mean(naive[3:10, ]$p_win)
 avg_ga = mean(ga_picks$p_win)
 avg_row = data.frame("Mean", "", avg_pick, "", avg_naive, "", avg_ga)
-sd_pick = sd(pick$p_win)
-sd_naive = sd(naive$p_win)
+sd_pick = sd(pick[3:10, ]$p_win)
+sd_naive = sd(naive[3:10, ]$p_win)
 sd_ga = sd(ga_picks$p_win)
 sd_row = data.frame("SD", "", sd_pick, "", sd_naive, "", sd_ga)
 
