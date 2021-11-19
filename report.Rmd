@@ -349,6 +349,7 @@ other_weeks = data.frame(week = c(1, 2, 9, 10), team = c("CHI", "TEN", "JAX", "C
 brute_search = rbind(picks, other_weeks)
 brute_search = merge(brute_search, df, on = .(week, teams)) # add prob back in
 ```
+
 ### Comparing across models
 
 Lets test out the performance of each algorithm. A couple of useful metrics to 
@@ -423,6 +424,7 @@ models %>%
        y = "") + 
   theme_bw(12)
 ```
+
 Lastly, we can look at the differences in week-by-week selections across the 
 models. The foresight taken by both the Brute Force and Opportunity Cost models 
 come to light in the below plot, specifically in Week 4 where only the Lowest 
@@ -564,7 +566,6 @@ models %>%
   theme_bw(12)
 
 ```
-
 
 Using the same chart format, what do things look like for all the competitors in the pool?
 We don't know the picks that would be made by competitors who've lost in earlier weeks, 
