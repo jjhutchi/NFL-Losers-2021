@@ -13,35 +13,43 @@ output:
 
 ```{r, echo = FALSE}
 # setup ----
-pacman::p_load(dplyr, ggplot2, kableExtra, data.table)
+pacman::p_load(dplyr, ggplot2, kableExtra, data.table, combinat, scales)
 ```
 
-I've joined my buddies annual NFL Losers Pool, and while I spend much less time 
-keeping up with the NFL than other competitors in the pool, I chose to make my picks 
-optimizing over NFL game outcome forecasts.
-Now that the pool is over, I am able to publicize the approach 
-I took to maximizing my likelihood of success in the pool. 
+## The 2021 NFL Losers Pool
 
-For those who haven't heard of a losers pool before, the rules are straight 
-forward. Each entrant picks one team a week to lose. If your pick wins, you are 
-eliminated from the pool. The last entrant left in the pool collects the total 
-pot of entry fees. The only catch, once a team is picked, you cannot pick that 
-team again. This is where the strategy comes into play, by optimizing when to 
-pick each team, one can reduce your overall likelihood of losing from the pool. 
+I've entered into an annual NFL Losers Pool with some friends. A Losers Pool is a 
+fantasy NFL league where each competitor in the league is required to pick any team 
+playing that week to lose their game. If the picked team wins, the player is eliminated 
+from the pool. The players who correctly picked a losing team that week move on and 
+must pick a new team to lose the following week. The last person remaining in 
+the Losers Pool is crowned the champion. 
 
-While it would have been a great exercise to forecast the outcomes of the NFL season, 
+Arguably, I may be the least informed competitor in the pool. Especially since 
+I haven't followed football since I lost out of the 2020 Losers Pool, however, 
+I have a trick up my sleeve and plan on creating an optimization algorithm to 
+outperform the others in the pool. 
+
+My strategy is to use game-by-game forecasts for the 2021 season, then optimize 
+my picks maximizing the likelihood of reaching a given week. Hopefully, with 
+enough foresight, data analytics, and some luck, I'll be able to outlast my 
+competitors. 
+
+While it would have been a great exercise to forecast the NFL games, 
 I've instead choose to leverage the NFL game projections made by 
 [FiveThirtyEight](https://projects.fivethirtyeight.com/2021-nfl-predictions/games/). 
-These projections are based off their quarterback-adjusted ELO forecasts. 
+These projections are based off their quarterback-adjusted ELO forecasts. Lets 
+quickly review ELO ratings for those who are unfamiliar, or just need a touch-up 
+on how we can leverage the probability of winning from the ratings. 
 
-## ELO Forecasts
+## ELO Ratings
 
 ELO is a fantastic and widely used method of ranking two competing teams. 
 Commonly used in chess, your ELO score is a representation of your skill based 
 on your performance against other ELO ranked players. There is a great video 
 describing the ELO process made by James Grime on his 
 [youtube channel](https://www.youtube.com/watch?v=AsYfbmp0To0&ab_channel=singingbanana). 
-All you really need to know about ELO is that we can derive the probability 
+All we really need to know about ELO is that we can derive the probability 
 a given team A beats the other team B as: 
 
 $$Pr(\text{A Wins}) = \frac{1}{1+10^{(ELO_B -ELO_A)/400}} $$
@@ -50,15 +58,47 @@ team based on their past results, and uses these scores - with some modification
 such as, home advantage, and skill of the quarterback - to forecast the average 
 win probabilities for each game of the season. 
 
-We can verify the performance of using ELO to forecast game outcomes by plotting 
-the frequency of game outcomes based on their ELO projections. If ELO were a good 
-forecasting variable, we would expect to see a 45 degree line between projected and 
-observed outcomes. 
+### ELO Rankings throughout the 2021 season
+
+We can get a sense of the ELO rankings throughout a season by looking at the 
+historical ELO rankings for last year's 2020 season. 
+
+```{r, message=FALSE}
+elo = read.csv("https://projects.fivethirtyeight.com/nfl-api/nfl_elo.csv") %>%
+  filter(season %in% c("2020")) %>%
+  select(date, team1, team2, elo1_pre, elo2_pre) %>%
+  tidyr::pivot_longer(cols = c("team1", "team2"), names_to = c("team_order"), values_to = ("team")) %>%
+  mutate(elo = case_when(
+    team_order == "team1" ~ elo1_pre, 
+    team_order == "team2" ~ elo2_pre), 
+    date = as.Date(date)) %>%
+  select(date, team, elo) %>%
+  mutate(team = reorder(team, elo)) %>%
+  filter(date < as.Date("01-09-2021", "%m-%d-%Y"))
+
+ggplot(elo, aes(x = date, y = elo, color = team)) + 
+  geom_line() + 
+  scale_color_viridis_d() + 
+  labs(title = "ELO rankings through the 2020 regular season", 
+       x = "", 
+       y = "ELO Ranking") + 
+  theme_bw(12) + 
+  theme(legend.position="none")
+```
 
 ### Historical ELO performance
 
+We want to make sure ELO rankings are creditable to use for our game predictions. 
+If the probabilities of winning each game derived from ELO are creditable, then 
+we would expect games with a 80% probability to be won 80% of the time. We can 
+verify this using the historical ELO data dating back to 1950.
+ 
+If the ELO rankings are a good indicator of the game outcome, we can expect to 
+see a 45 degree line between ELO projected game outcomes and the actual 
+observed outcomes. 
+
 ```{r}
-read.csv("https://projects.fivethirtyeight.com/nfl-api/nfl_elo.csv") %>%
+data = read.csv("https://projects.fivethirtyeight.com/nfl-api/nfl_elo.csv") %>%
   mutate(loser_score = ifelse(qbelo_prob1 > qbelo_prob2, score2, score1), 
          winner_score = ifelse(qbelo_prob1 > qbelo_prob2, score1, score2), 
          p_win_winner = ifelse(qbelo_prob1 > qbelo_prob2, qbelo_prob1, qbelo_prob2), 
@@ -79,8 +119,12 @@ read.csv("https://projects.fivethirtyeight.com/nfl-api/nfl_elo.csv") %>%
   theme_bw(12)
 ```
 
+As shown above, we can see there is a strong correlation between the forecasted 
+and observed outcomes. Notably there are outcomes where teams with a ELO forecast 
+rate greater than 93% won all of their games, but overall the above scatter plot 
+is strong evidence towards using ELO ratings for our projections. 
 
-```{r}
+```{r, message=FALSE}
 # Helper Functions ----
 read_data = function(path, past_picks, all_weeks = FALSE){
   dt = data.table::fread(path)
@@ -105,11 +149,15 @@ read_data = function(path, past_picks, all_weeks = FALSE){
 
 ## 2021 NFL Season Data 
 
-There are 18 weeks and 32 teams to pick from in the 2021 season. From the 
-heat map below, we see that Tom Brady and the Tampa Bay Buccaneers are favourited 
-the most by the ELO rankings, and the Houston Texans are the forecasted worst team 
+To best understand the optimization problem we are facing, lets first look at 
+the 2021 NFL season data. There are 18 weeks and 32 teams to pick from in the 
+2021 season. From the 
+heat map below, we see that Josn Allen and the Buffalo Bills are favourited 
+the most by the ELO rankings with Tom Brady and the Buccaneers closeby. There is a 
+battle between the Houston Texans and Detroit Lions as the worst teams
 in the league. It is also worth noting, Houston has their lowest win rate of the 
-season in Week 7, roughly the same rate as Detroit.
+season in Week 7, roughly the same rate as Detroit. This will prove to be the
+crux across different algorithms. 
 
 ```{r}
 fivethirtyeight = "https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv"
@@ -142,28 +190,37 @@ is the most important aspect of the losers pool, I discount the opportunity cost
 so that future weeks are less important than upcoming weeks. 
 
 I also compare the results from my opportunity cost algorithm against a naive 
-algorithm that picks the lowest probability team to win each week. 
+algorithm that picks the lowest probability team to win each week.
 
-Another caveat of the contest is entrants are allowed to re-enter up until week 
-3. Due to the scarcity of teams in the pool, I run the model beginning at Week 3, 
-and then pick from the remainder of teams in Weeks 1 and 2. 
+One specific rule in the Losers Pool, is that players are allowed to reenter into 
+the pool if they are eliminated in Weeks 1 or 2. For this reason, my optimization 
+begins in Week 3, and picks made in Weeks 1 and 2 are the next best teams that are 
+remaining for those weeks after the algorithms are completed.
 
-Last year, the pool lasted only until Week 10. For this reason, I also do not 
-optimize my picks beyond this week. The pool is less about lasting to Week 18 as 
-it is about outlasting the other competitors. 
+It is also worth noting, losers pools do not last the entire season. Consider 
+the case of picking a game where a team has a 15% chance of winning, there is 
+roughly a 50% chance of lasting past Week 4, a 20% chance of lasting until Week 10, 
+and a mere 5% chance of lasting until Week 18. Therefore, it would be very costly 
+to earlier weeks to make pick projections out to the 18th week. Instead, I chose 
+to run my algorithms out to Week 10. It also just happens to be that the winner of 
+the 2020 NFL Losers pool was determined in Week 10.
 
-### Naive Approach - No foresight
+In the sections below, I describe three different algorithms to determining the 
+set of team-week picks to optimize the likelihood of lasting in the losers pool. 
+The three algorithms are: 
+
+1. Taking the best pick per week with no foresight
+2. Making picks based on minimizing the opportunity cost of each selected team
+3. Minimizing the sum of win probabilities with brute force
+
+### Naive Approach - Picking weekly without foresight
 We can use a naive algorithm that has no foresight into future periods to compare 
 against the opportunity cost model. Picking the lowest probability team week by 
-week will front-load the best teams and will most likely run into suboptimal picks 
-in later weeks. 
+week will front-load the best teams and will most likely run into sub optimal picks 
+in later weeks.
 
-The algorithm is straight forward: 
-
-1. Pick the lowest win probability in the start week.
-2. Remove the picked team from the candidate pool of teams for the remaining weeks.
-3. Move to the next week and repeat. 
-
+The Lowest Pick per Week algorithm begins in Week 3, picks the team with the 
+lowest win probability, then removes that team from being picked in future weeks. 
 
 ### Oppertunity Cost Model: 
 The benefit of this algorithm comes with its forward-looking nature. The model 
@@ -172,19 +229,33 @@ and the win probability of the next best team. This approach allows for the mode
 to pick teams when they are the most valuable, rather than making the best pick 
 to move on to the next week. 
 
-The algorithm is the following: 
+The Opportunity Cost algorithm computes the difference between the best and 
+second best pick for each week, then picks the team with the largest opportunity 
+cost across all weeks in the data set. Then, the selected team and week are discarded 
+from the candidate weeks and team, and the algorithm repeats. Additionally, the 
+algorithm discounts future weeks by a parameter $\beta = 0.8$ that way more 
+weight is placed on upcoming weeks. 
 
-1. Compute the difference between the lowest and second lowest win probabilities 
-per week. 
-2. Pick the team with the largest delta, or oppertunity cost across all weeks. 
-3. Remove the picked team and week from the pool of options.
-4. Repeat step 1.
+Compared to the naive approach, this model preforms worse in early weeks, however 
+out preforms the naive approach the longer the season goes on as the model is 
+trading off early performance for sustained performance.
 
-Compared to the naive approach, this model preforms worse in early weeks, but 
-out preforms the naive approach the longer the season goes on. 
+### Brute Force Model
+
+The Brute Force Model strategically works through all possible combinations of 
+picking the lowest team per week by changing the order of weeks that are selected. 
+Since the algorithms optimize over weeks 3 to 10, there are $8! = 40,320$ possible 
+permutations of orders to consider each weekly pick. By running through all the 
+possible combinations of week orders to make the lowest team pick, we are able to 
+see the cumulative probability of each team losing their game, and then pick the 
+team profile that has the greatest probability of lasting all 10 weeks. 
+
+While this model gets at the optimal pick across each week, it struggles with 
+scaling as each additional week increases the number of checks is represented 
+by $N!$.
 
 
-```{r}
+```{r, message=FALSE}
 # Picking functions ----
 join_picks <- function(past_weeks, past_picks){
   picks <- setDT(data.frame(week = past_weeks, loser = past_picks))
@@ -243,27 +314,7 @@ cumprob <- function(picks, inc_weeks = FALSE){
   
   out
 }
-```
 
-### Random Search: 
-* Work in progress * 
-We can find a set of weekly picks that minimizes the total win probability 
-using a random search approach. The general principal is to select teams 
-randomly conditional on their overall team performance. Then, we take the 
-best performing teams per sample, and mutate the teams from their selections 
-to derive further results. Ultimately, this should get us towards an optimal 
-selection, simply by breeding well performing teams. 
-
-The rough algorithm is the following: 
-
-1. Compute weighted probabilities for each team based on their season average 
-win rate. 
-2. Sample a set of teams for each week based on the weighting calculated in (1). 
-3. Compute the average win probability for each team.
-4. ... and so on, with mutations, corss-selection, reproduction etc. 
-
-
-```{r, cache = TRUE}
 path = "https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv"
 df = read_data(path, all_weeks = TRUE)
 df = tidyr::pivot_longer(df, cols = c("loser", "winner"), names_to = c("favourite"), values_to = ("team"))
@@ -271,65 +322,42 @@ df = mutate(df, p = case_when(
   favourite == "loser" ~ p_win, 
   favourite == "winner" ~ p_win_winner)) %>%
   select(week, team, p) %>%
-  filter(week %in% 3:10)
+  filter(week %in% 1:10)
 
-smaller_df = df %>%
-  group_by(week) %>%
-  arrange(p) %>%
-  slice(1:3L)
+week_combos = permn(3:8) # 8! or 40320 combinations to consider. 
+target = 0
 
-# what about our GA on a subset of the three best teams per week?
-prob = setDT(smaller_df)[, .(w=mean(p)), by = c("team")]
-teams = prob$team
-prob = prob$w
+for(order in week_combos){
+  week_list = c()
+  team_list = c()
+  score = 1
+  for(i in order){
+    tmp = setDT(df)[!team %in% team_list & week == i, ]
+    tmp = tmp[order(p), .SD[1]] # take lowest pick per week
 
-score = function(chromosome){
-  data = data.frame(cbind(chromosome, week = c(3:10)))
-  data = merge(data, df, by.x = c("chromosome", "week"), by.y = c("team", "week"))
-  if(nrow(data) < length(chromosome)){
-    return(1) # team picked on by-week
+    team_list = append(team_list, tmp$team)
+    week_list = append(week_list, tmp$week)
+    score = score * (1 - tmp$p) 
   }
-  return(mean(data$p))
+  if(score > target){
+    target = score
+    picks = data.frame(week = week_list, team = team_list)
+  }
 }
 
-base = 0.5
-result = c()
-picks = list()
-track = c()
-N = 1000000
-for(i in 1:N){
-  chromosome = sample(teams, 8, replace = FALSE, prob = (1-prob))
-  performance = score(chromosome)
-  if(performance < base){
-    base = performance
-    top_chromosome = chromosome
-    picks[[length(picks) + 1]] = chromosome
-    result = append(result, base)
-  }
-  track = append(track, base) # to plot progress
-}
-
-plot = data.frame(prob = track)
-plot$trial = 1:N
-
-require(scales)
-ggplot(plot, aes(x = trial, y = prob)) + 
-  geom_point() + 
-  scale_color_viridis_d() + 
-  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = percent) + 
-  scale_x_continuous(trans='log10') +
-  labs(title = "GA Model - Mean Weekly Win Probability",
-       x = "Trial Number - Logs", 
-       y = "Performance") + 
-  theme_bw(12)
-
-# set up for later
-ga_picks = data.frame(week = c(3:10), team = top_chromosome)
-ga_picks = left_join(ga_picks, df, by = c("week", "team"))
-names(ga_picks) = c("week", "loser", "p_win")
+other_weeks = data.frame(week = c(1, 2, 9, 10), team = c("CHI", "TEN", "JAX", "CAR"))
+brute_search = rbind(picks, other_weeks)
+brute_search = merge(brute_search, df, on = .(week, teams)) # add prob back in
 ```
-
 ### Comparing across models
+
+Lets test out the performance of each algorithm. A couple of useful metrics to 
+use are the average win likelihood across all weeks - note these statistics 
+do not include Weeks 1 and 2 which were not included in the model - as well as 
+the cumulative probabilities of reaching a given week. We can see that with this 
+set of data, the Brute Force model and Opportunity Cost model are nearly identical 
+in terms of their average week by week probabilities. The Brute Force model does 
+have a slightly lower standard deviation.
 
 ```{r, echo = FALSE, message = FALSE}
 dt = read_data("https://projects.fivethirtyeight.com/nfl-api/nfl_elo_latest.csv", past_picks = c())
@@ -338,20 +366,22 @@ past_picks = c("DAL", "TEN") # My first picks after optimizing
 
 pick = by_oc(dt, past_picks, past_weeks, beta = 1)
 naive = by_week(dt, past_picks, past_weeks)
+names(brute_search) = names(pick)
+brute_search = brute_search %>% arrange(week)
 
 
 avg_pick = mean(pick[3:10, ]$p_win)
 avg_naive = mean(naive[3:10, ]$p_win)
-avg_ga = mean(ga_picks$p_win)
+avg_ga = mean(brute_search[3:10, ]$p_win)
 avg_row = data.frame("Mean", "", avg_pick, "", avg_naive, "", avg_ga)
 sd_pick = sd(pick[3:10, ]$p_win)
 sd_naive = sd(naive[3:10, ]$p_win)
-sd_ga = sd(ga_picks$p_win)
+sd_ga = sd(brute_search[3:10, ]$p_win)
 sd_row = data.frame("SD", "", sd_pick, "", sd_naive, "", sd_ga)
 
 tbl = pick %>% 
   left_join(naive, by = "week", suffix = c("_oc", "_week")) %>%
-  left_join(ga_picks, by = "week")
+  left_join(brute_search, by = "week")
 
 
 names(tbl) = c("Week", rep(c("Team", "ProbWin"), 3))
@@ -360,22 +390,22 @@ names(sd_row) = names(tbl)
 
 tbl = rbind(tbl, avg_row, sd_row)
 
-kbl(tbl, digits=3, caption = "Optimal Picks per Week") %>%
+kbl(tbl, digits=4, caption = "Optimal Picks per Week") %>%
   kable_classic(full_width=F) %>%
-  add_header_above(c(" " = 1, "Oppertunity Cost" = 2, "Lowest Per Week" = 2, "GA Model" = 2)) %>%
+  add_header_above(c(" " = 1, "Oppertunity Cost" = 2, "Lowest Per Week" = 2, "Brute Force" = 2)) %>%
   row_spec(nrow(tbl), bold=T) %>%
   row_spec(nrow(tbl) - 1, bold=T)
 ```
 
-Given the Boolean nature of our predictions, we can compute the likelihood 
-of reaching a given week based on our pick paths. Unsurprisingly, we see that the 
-best pick per week model outperforms our opportunity cost model early on. 
+When looking at the likelihood of reaching a given week, we can see that all three 
+models preform pretty similar to each-other, however the Opportunity Cost and 
+Brute Force models eventually pass the By Week model. If we stretch the weeks in 
+the analysis, I would expect to see even better performance from the Opportunity 
+Cost model. 
 
 ```{r, message = FALSE}
 # Probability of reaching a given week ----
-require(scales)
-
-models = list(pick[3:10, ], naive[3:10, ], ga_picks)
+models = list(pick[3:10, ], naive[3:10, ], brute_search[3:10, ])
 models = lapply(models, cumprob) %>% 
   bind_cols()
 models$week = 3:10
@@ -393,25 +423,23 @@ models %>%
        y = "") + 
   theme_bw(12)
 ```
-
-Visualizing the choice set of each model below, we can see the opportunity cost 
-model takes on much greater risk in Weeks 4 and 5, to receive an edge in Weeks 
-6 and 8. 
-
-Additionally, we can see the poor performance out of our GA model. This is to be 
-expected as it is only using the random breeding and should be taking on a more 
-rigerous algo. 
+Lastly, we can look at the differences in week-by-week selections across the 
+models. The foresight taken by both the Brute Force and Opportunity Cost models 
+come to light in the below plot, specifically in Week 4 where only the Lowest 
+per Week model takes Houston, while the Brute Force and Opportunity Cost models 
+instead wait until week 6 to take Houston and avoid being stuck with a risky 
+Philadelphia.
 
 ```{r, message = FALSE}
 # Plot choice set of each model ----
 pick$approach = "Oppertunity Cost"
 naive$approach = "Lowest per Week"
-ga_picks$approach = "Random Search"
-compare = rbind(pick, naive, ga_picks)
+brute_search$approach = "Brute Search"
+compare = rbind(pick, brute_search)
 
-ggplot(compare, aes(x = week, y = p_win, color = approach, label = loser)) + 
+ggplot(compare, aes(x = week, y = p_win, color = approach, shape = approach, label = loser)) + 
   geom_line(aes(group = week), color="#e3e2e1", size = 2, alpha = 0.7) + 
-  geom_point(size = 3) + 
+  geom_point(size = 3, alpha = 0.7) + 
   geom_text(color = "black", nudge_x = 0.5) + 
   scale_color_viridis_d() + 
   coord_flip() + 
@@ -420,13 +448,20 @@ ggplot(compare, aes(x = week, y = p_win, color = approach, label = loser)) +
   labs(title = "Choice set comparison between models", 
        x = "Week", 
        y = "Prob. Win", 
-       color = "Model") + 
+       color = "Model", 
+       shape = "Model") + 
   theme_bw(12)
 ```
 
 ## Season Results
 
-The season started with 33 players, with the season results shown below. 
+Armed with the above insight, I tackled the Losers Pool taking insights from 
+both the Opportunity Cost and Brute Search models. Also, a quick disclaimer, 
+the game probabilities update after each week, therefore picks in earlier weeks 
+in hindsight may look less than optimal as the forecasts of future games have 
+changed. With that out of the way, here are the results of the season. 
+We began with 33 players, and each choice set is shown below. Eliminations are 
+shown by the yellow dots. 
 
 ```{r, message=FALSE, warning=FALSE}
 ownership <- "https://docs.google.com/spreadsheets/d/1sajv1HXDqzjG2bXwx927MTP_TUKRWsjVSvKAwnaWZcs/edit?usp=sharing"
@@ -466,7 +501,7 @@ ggplot(subset(plot_data, week < 10), aes(x = week, y = p_win)) +
 
 The season only lasted to Week 9, with three players splitting the pot. 
 
-Admittedly, I did not follow the above Oppertuniy Cost Algorithm perfectly. I had 
+Admittedly, I did not follow the above Opportunity Cost Algorithm perfectly. I had 
 two entries, and so chose to offset the picks I was making each week to mitigate 
 some of the risk. 
 
@@ -474,16 +509,17 @@ some of the risk.
 # Plot actual selection ----
 jordan_picks = own[grepl("Hutch", own$Player), c("Week", "Pick", "p_win", "Player")]
 names(jordan_picks) = names(compare)
+compare = rbind(compare, jordan_picks)
+compare = compare %>% filter(loser != "OUT")
 
 ggplot(compare, aes(x = week, y = p_win, color = approach, shape = approach, label = loser)) + 
   geom_line(aes(group = week), color="#e3e2e1", size = 2, alpha = 0.7) + 
   geom_point(size = 3, alpha = 0.8) + 
-  # geom_text(color = "black", nudge_x = 0.5) + 
   scale_color_viridis_d() + 
   coord_flip() + 
   scale_x_continuous(expand = c(0, 0), limits = c(0, 11)) + 
   scale_y_continuous(labels = percent) + 
-  labs(title = "Choice set comparison between Opeprtunity Cost model, \nand picking the lowest win probability per week", 
+  labs(title = "Choice set comparison between theoretical model picks, \nand my actual season picks", 
        x = "Week", 
        y = "Prob. Win", 
        color = "Model", 
@@ -492,7 +528,7 @@ ggplot(compare, aes(x = week, y = p_win, color = approach, shape = approach, lab
 ```
 
 If we compare the cumulative probabilities across the above models, and the actual 
-picks I put into practice, we can see that the oppertunity cost model ended up with 
+picks I put into practice, we can see that the opportunity cost model ended up with 
 the higher probability by Week 10. The only downside is taking on the increased risk 
 earlier in weeks 4 and 5. 
 
@@ -506,14 +542,14 @@ jordan_2 = jordan_picks[jordan_picks$approach == "Hutch 2", ]
 jordan_1 = by_oc(dt, past_picks = jordan_1$loser[1:8], past_weeks = 1:8, beta = 1, start_week = 1, total_weeks = 10)
 jordan_2 = by_oc(dt, past_picks = jordan_2$loser[1:7], past_weeks = 1:7, beta = 1, start_week = 1, total_weeks = 10)
 
-# add to dataset
+# add to data set
 jordan_1$approach = "Jordan 1"
 jordan_2$approach = "Jordan 2"
-models = list(pick[3:10, ], naive[3:10, ], jordan_1[3:10, ], jordan_2[3:10, ])
+models = list(pick[3:10, ], brute_search[3:10, ], jordan_1[3:10, ], jordan_2[3:10, ])
 models = lapply(models, cumprob) %>% 
   bind_cols()
 models$week = 3:10
-names(models) = c("Oppertunity Cost", "By Week", "Jordan 1", "Jordan 2", "Week")
+names(models) = c("Oppertunity Cost", "Brute Search", "Jordan 1", "Jordan 2", "Week")
 models %>%
   tidyr::pivot_longer(cols = -Week, names_to = "Model", values_to = "p") %>%
   ggplot(aes(x = Week, y = p, color = Model, shape = Model)) +

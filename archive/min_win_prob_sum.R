@@ -1,5 +1,5 @@
 ## Explore if we can make a model that minimizes the cumulative sum of weekly probablities. 
-pacman::p_load(dplyr, data.table, ggplot2)
+pacman::p_load(dplyr, data.table, ggplot2, combinat)
 read_data = function(path, past_picks, all_weeks = FALSE){
   dt = data.table::fread(path)
   week1 <- as.Date("2021-09-09")
@@ -138,3 +138,49 @@ ggplot(plot, aes(x = trial, y = prob)) +
        x = "Trial Number - Logs", 
        y = "Performance") + 
   theme_bw(12)
+
+
+
+
+
+
+### suppose we simplify the problem and take a subset of teams, 
+# we plot each teams weekly probabilities in N dimensions, 
+# we want to take the intersection of each team line with all other teams
+# such that each team is picked only once. 
+# think of each team's season outcomes plotted in N dimensions, then we 
+# take the set of points where each team intersects with each other team 
+# only once. 
+
+# is there a game theory approach, look at it as a set of picks where no 
+# other picks want to swap out?
+
+# maybe I use a similar approah to what I did with the doughnut script, trying to 
+# place teams until I cannot, then going back and widening the criteria?
+
+
+# attempt 2 ----
+# loop through each start date, and take the team with the lowest win probability
+# moving through each week.
+# if we vary the order of weeks, then this will go through all the combos of filling in the lowest team. 
+week_combos = permn(3:8) # 8! or 40320 combinations to consider. 
+target = 1
+
+for(order in week_combos){
+  week_list = c()
+  team_list = c()
+  score = 0
+  for(i in order){
+    tmp = setDT(df)[!team %in% team_list & week == i, ]
+    tmp = tmp[order(p), .SD[1]] # take lowest pick per week
+
+    team_list = append(team_list, tmp$team)
+    week_list = append(week_list, tmp$week)
+    score = score + tmp$p
+  }
+  if(score < target){
+    target = score
+    picks = data.frame(weeks = week_list, teams = team_list)
+  }
+}
+
